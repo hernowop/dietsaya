@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DietSaya — Pencatat Diet Pribadi & AI Kalori</title>
+  
+  <!-- Meta SEO & PWA -->
+  <meta name="description" content="Aplikasi pencatatan diet pribadi dengan estimasi kalori dan nutrisi otomatis bertenaga Google Gemini AI.">
+  <meta name="theme-color" content="#10b981">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for Weight Trend -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- Google Identity Services (GIS) SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Loading Overlay -->
+  <div id="global-loading" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p id="loading-text" class="loading-text">Memproses data...</p>
+  </div>
+
+  <!-- SCREEN 1: LOGIN (Google Auth Only) -->
+  <section id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">🥗</div>
+        <h1>DietSaya</h1>
+        <p class="auth-subtitle">Pencatat Diet Cerdas & AI Nutritionist Pribadi</p>
+      </div>
+
+      <div class="auth-info-box">
+        <span class="lock-icon">🔒</span>
+        <p>Aplikasi ini bersifat privat. Hanya Akun Google yang terdaftar yang memiliki izin akses.</p>
+      </div>
+
+      <div class="google-btn-wrapper">
+        <div id="google-signin-btn"></div>
+      </div>
+
+      <div id="auth-error" class="auth-error-msg hidden"></div>
+
+      <div class="auth-footer">
+        <p>Bertenaga Google Gemini & Apps Script</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: MAIN APP (Visible when authenticated) -->
+  <div id="app-container" class="app-container hidden">
+
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-user">
+        <img id="user-avatar" class="user-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar">
+        <div class="user-meta">
+          <span class="greeting-sub">Halo, selamat datang</span>
+          <strong id="user-name" class="user-display-name">Pengguna</strong>
+        </div>
+      </div>
+      <div class="header-action">
+        <button id="btn-quick-sync" class="icon-btn" title="Segarkan Data" aria-label="Refresh Data">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main View Container (Single Page Switcher) -->
+    <main class="content-body">
+
+      <!-- ================= TAB 1: DASHBOARD ================= -->
+      <section id="view-dashboard" class="app-view active">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Ringkasan Hari Ini</h2>
+            <p id="dashboard-date" class="view-subtitle">Memuat tanggal...</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="App.navigate('makan')">
+            <span>+ Tambah Makan</span>
+          </button>
+        </div>
+
+        <!-- Calorie Main Card -->
+        <div class="card calorie-hero-card">
+          <div class="calorie-hero-content">
+            <div class="calorie-text">
+              <span class="badge badge-accent">Target: <strong id="hero-target-cal">2000</strong> kkal</span>
+              <div class="cal-big-number">
+                <span id="hero-consumed-cal">0</span>
+                <small>/ kkal dimakan</small>
+              </div>
+              <p class="cal-remaining">
+                Sisa kuota: <strong id="hero-remaining-cal" class="text-success">2000</strong> kkal
+              </p>
+            </div>
+            <div class="calorie-radial-box">
+              <div class="radial-progress" id="hero-radial-progress" style="--percent: 0%;">
+                <span id="hero-percent-text">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linear Calorie Bar -->
+          <div class="progress-bar-bg">
+            <div id="hero-cal-bar" class="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Macronutrients Grid -->
+        <div class="macros-grid">
+          <!-- Protein -->
+          <div class="macro-card macro-protein">
+            <div class="macro-header">
+              <span class="macro-dot dot-protein"></span>
+              <span class="macro-label">Protein</span>
+            </div>
+            <div class="macro-val">
+              <span id="macro-protein-cur">0</span>
+              <small>/ <span id="macro-protein-target">120</span>g</small>
+            </div>
+            <div class="macro-bar">
+              <div id="macro-protein-bar" class="bar-fill fill-protein" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Karbohidrat -->
+          <div class="macro-card macro-carbs">
+            <div class="macro-header">
+              <span class="macro-dot dot-carbs"></span>
+              <span class="macro-label">Karbo</span>
+            </div>
+            <div class="macro-val">
+              <span id="macro-carbs-cur">0</span>
+              <small>/ <span id="macro-carbs-target">250</span>g</small>
+            </div>
+            <div class="macro-bar">
+              <div id="macro-carbs-bar" class="bar-fill fill-carbs" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Lemak -->
+          <div class="macro-card macro-fat">
+            <div class="macro-header">
+              <span class="macro-dot dot-fat"></span>
+              <span class="macro-label">Lemak</span>
+            </div>
+            <div class="macro-val">
+              <span id="macro-fat-cur">0</span>
+              <small>/ <span id="macro-fat-target">65</span>g</small>
+            </div>
+            <div class="macro-bar">
+              <div id="macro-fat-bar" class="bar-fill fill-fat" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7-Day Stats Summary Banner -->
+        <div class="card stats-7day-card">
+          <h3 class="card-title">Statistik 7 Hari Terakhir</h3>
+          <div class="stats-7day-grid">
+            <div class="stat-pill">
+              <span class="stat-lbl">Rata-rata Kalori</span>
+              <strong id="stat-7d-avg-cal" class="stat-val">0 kkal</strong>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-lbl">Rata-rata Protein</span>
+              <strong id="stat-7d-avg-pro" class="stat-val">0 g</strong>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-lbl">Berat Terakhir</span>
+              <strong id="stat-7d-last-weight" class="stat-val">- kg</strong>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-lbl">Perubahan BB</span>
+              <strong id="stat-7d-change-weight" class="stat-val">0.0 kg</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Logged Meals -->
+        <div class="section-block">
+          <div class="section-title-row">
+            <h3 class="section-title">Makanan Hari Ini (<span id="today-item-count">0</span>)</h3>
+            <button class="btn-link" onclick="App.navigate('riwayat')">Lihat Semua</button>
+          </div>
+
+          <div id="dashboard-food-list" class="food-card-list">
+            <!-- Populated dynamically -->
+            <div class="empty-state">
+              <div class="empty-icon">🍽️</div>
+              <p>Belum ada makanan yang dicatat hari ini.</p>
+              <button class="btn btn-secondary btn-sm" onclick="App.navigate('makan')">Catat Makanan Pertama</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: INPUT MAKANAN DENGAN AI ================= -->
+      <section id="view-makan" class="app-view">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Input Makanan AI</h2>
+            <p class="view-subtitle">Ketik makanan dalam bahasa sehari-hari, AI akan memperkirakan nutrisinya.</p>
+          </div>
+        </div>
+
+        <!-- AI Text Box Area -->
+        <div class="card ai-input-card">
+          <!-- Pilihan Input: Kamera / Foto atau Teks -->
+          <div class="photo-upload-container">
+            <input type="file" id="ai-food-image-input" accept="image/*" capture="environment" class="hidden" onchange="FoodModule.handleImageSelected(event)">
+            <div id="photo-upload-placeholder" class="photo-upload-placeholder" onclick="document.getElementById('ai-food-image-input').click()">
+              <div class="photo-icon">📸</div>
+              <div class="photo-text">
+                <strong>Foto Makanan (Kamera / Galeri)</strong>
+                <span>AI akan otomatis menganalisis makanan dari foto</span>
+              </div>
+            </div>
+            
+            <div id="photo-preview-wrapper" class="photo-preview-wrapper hidden">
+              <img id="photo-preview-img" src="" alt="Preview Makanan">
+              <button type="button" class="btn-remove-photo" onclick="FoodModule.removePhoto()" title="Hapus Foto">&times;</button>
+            </div>
+          </div>
+
+          <label for="ai-food-input" class="form-label mt-3">Catatan / Keterangan Teks Tambahan (Opsional):</label>
+          <textarea 
+            id="ai-food-input" 
+            class="form-textarea" 
+            rows="4" 
+            placeholder="Contoh: Nasi putih 200 gram, ayam goreng 1 potong dada, tempe goreng 2 biji, dan es teh manis 1 gelas"></textarea>
+          
+          <!-- Sample Chips for quick test -->
+          <div class="quick-chips">
+            <span class="chip-label">Coba contoh:</span>
+            <button type="button" class="chip" onclick="FoodModule.fillSample('Nasi putih 1 piring, dada ayam panggang 150g, tumis kangkung')">Nasi & Dada Ayam</button>
+            <button type="button" class="chip" onclick="FoodModule.fillSample('Oatmeal 50g, susu skim 200ml, pisang 1 buah')">Sarapan Oat & Pisang</button>
+            <button type="button" class="chip" onclick="FoodModule.fillSample('Gado-gado lontong 1 porsi, telur rebus 1 butir')">Gado-gado & Telur</button>
+          </div>
+
+          <!-- Date & Time Override -->
+          <div class="form-row-2 mt-3">
+            <div class="form-group">
+              <label class="form-label-sub" for="input-meal-date">Tanggal</label>
+              <input type="date" id="input-meal-date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label-sub" for="input-meal-time">Waktu</label>
+              <input type="time" id="input-meal-time" class="form-input">
+            </div>
+          </div>
+
+          <button id="btn-analyze-gemini" class="btn btn-primary btn-block mt-3" onclick="FoodModule.analyzeWithAI()">
+            <span class="btn-icon">✨</span>
+            <span>Analisis dengan Gemini AI</span>
+          </button>
+        </div>
+
+        <!-- AI Analysis Results & Confirmation Area -->
+        <div id="ai-result-section" class="ai-result-section hidden">
+          <div class="section-title-row">
+            <h3 class="section-title">Hasil Estimasi AI (Dapat Diedit)</h3>
+            <button class="btn btn-outline-primary btn-sm" onclick="FoodModule.addEmptyItemRow()">+ Tambah Baris</button>
+          </div>
+
+          <div class="alert alert-info">
+            <span class="alert-icon">ℹ️</span>
+            <span id="ai-estimation-note">Nilai merupakan estimasi Gemini AI. Silakan koreksi angka jika diperlukan sebelum menyimpan.</span>
+          </div>
+
+          <!-- Editable Item Cards Container -->
+          <div id="ai-items-container" class="ai-items-container">
+            <!-- Dynamic editable cards inserted here -->
+          </div>
+
+          <!-- AI Total Summary Bar -->
+          <div class="card ai-total-summary-card">
+            <div class="ai-total-header">Total Estimasi Menu Ini:</div>
+            <div class="ai-total-macros">
+              <div>Kalori: <strong id="ai-sum-calories">0</strong> kkal</div>
+              <div>Protein: <strong id="ai-sum-protein">0</strong>g</div>
+              <div>Karbo: <strong id="ai-sum-carbs">0</strong>g</div>
+              <div>Lemak: <strong id="ai-sum-fat">0</strong>g</div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-buttons-grid mt-3">
+            <button class="btn btn-secondary" onclick="FoodModule.cancelAIResult()">Batal</button>
+            <button class="btn btn-success btn-lg" onclick="FoodModule.saveConfirmedItems()">
+              <span>💾 Simpan ke Catatan</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: RIWAYAT MAKANAN ================= -->
+      <section id="view-riwayat" class="app-view">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Riwayat Makanan</h2>
+            <p class="view-subtitle">Pantau seluruh catatan makanan berdasarkan tanggal.</p>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card filter-card">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label-sub" for="filter-history-date">Pilih Tanggal</label>
+              <input type="date" id="filter-history-date" class="form-input" onchange="FoodModule.filterHistoryByDate()">
+            </div>
+            <div class="form-group flex-end">
+              <button class="btn btn-secondary btn-block" onclick="FoodModule.resetHistoryFilterToday()">Hari Ini</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Day Summary -->
+        <div class="card history-summary-card">
+          <div class="history-sum-title">Total Nutrisi Tanggal: <span id="history-selected-date-str">-</span></div>
+          <div class="history-sum-grid">
+            <div class="h-stat"><span>Kalori:</span> <strong id="hist-tot-cal">0</strong> kkal</div>
+            <div class="h-stat"><span>Protein:</span> <strong id="hist-tot-pro">0</strong>g</div>
+            <div class="h-stat"><span>Karbo:</span> <strong id="hist-tot-carbs">0</strong>g</div>
+            <div class="h-stat"><span>Lemak:</span> <strong id="hist-tot-fat">0</strong>g</div>
+          </div>
+        </div>
+
+        <!-- History Items List -->
+        <div id="history-items-list" class="food-card-list mt-3">
+          <!-- Dynamic Items -->
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: BERAT BADAN ================= -->
+      <section id="view-berat" class="app-view">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Catatan Berat Badan</h2>
+            <p class="view-subtitle">Pantau fluktuasi dan progres berat badanmu.</p>
+          </div>
+        </div>
+
+        <!-- Weight Input Form -->
+        <div class="card">
+          <h3 class="card-title">Catat Berat Badan Baru</h3>
+          <form id="form-weight" onsubmit="WeightModule.handleSaveWeight(event)">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label-sub" for="weight-input-date">Tanggal</label>
+                <input type="date" id="weight-input-date" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label-sub" for="weight-input-val">Berat (kg)</label>
+                <input type="number" step="0.1" min="20" max="300" id="weight-input-val" class="form-input" placeholder="Contoh: 68.5" required>
+              </div>
+            </div>
+
+            <div class="form-group mt-2">
+              <label class="form-label-sub" for="weight-input-note">Catatan (Opsional)</label>
+              <input type="text" id="weight-input-note" class="form-input" placeholder="Misal: Pagi hari sebelum sarapan">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block mt-3">
+              <span>Simpan Berat Badan</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Weight Trend Chart -->
+        <div class="card chart-card mt-3">
+          <h3 class="card-title">Grafik Tren Berat Badan</h3>
+          <div class="chart-wrapper">
+            <canvas id="weight-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Weight Logs List -->
+        <div class="section-block mt-3">
+          <h3 class="section-title">Riwayat Timbangan</h3>
+          <div id="weight-logs-list" class="weight-logs-container">
+            <!-- Dynamic list -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: PROFIL & PENGATURAN ================= -->
+      <section id="view-profil" class="app-view">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Profil & Target Nutrisi</h2>
+            <p class="view-subtitle">Sesuaikan target kalori dan makronutrisi harianmu.</p>
+          </div>
+        </div>
+
+        <!-- User Profile Card -->
+        <div class="card profile-user-card">
+          <div class="profile-info">
+            <img id="profile-avatar" class="profile-large-avatar" src="" alt="Avatar">
+            <div>
+              <h3 id="profile-name" class="profile-name">Nama Pengguna</h3>
+              <p id="profile-email" class="profile-email">email@gmail.com</p>
+              <span class="badge badge-success mt-1">Akun Terverifikasi</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Target Settings Form -->
+        <div class="card mt-3">
+          <h3 class="card-title">Pengaturan Target Harian</h3>
+          <form id="form-settings" onsubmit="App.handleSaveSettings(event)">
+            <div class="form-group">
+              <label class="form-label-sub" for="target-calories">Target Kalori Harian (kkal)</label>
+              <input type="number" id="target-calories" class="form-input" min="500" max="10000" required>
+            </div>
+
+            <div class="form-row-3 mt-2">
+              <div class="form-group">
+                <label class="form-label-sub" for="target-protein">Protein (g)</label>
+                <input type="number" id="target-protein" class="form-input" min="0" max="500" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label-sub" for="target-carbs">Karbo (g)</label>
+                <input type="number" id="target-carbs" class="form-input" min="0" max="1000" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label-sub" for="target-fat">Lemak (g)</label>
+                <input type="number" id="target-fat" class="form-input" min="0" max="500" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block mt-3">
+              <span>Simpan Target</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- App Info & Logout -->
+        <div class="card mt-3">
+          <h3 class="card-title">Tentang Aplikasi</h3>
+          <p class="text-muted text-sm">DietSaya v1.0.0 • Personal Edition<br>Database: Google Sheets • AI: Google Gemini</p>
+          
+          <button class="btn btn-danger btn-block mt-3" onclick="AuthModule.logout()">
+            <span>Keluar dari Akun</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Mobile First) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-target="dashboard" onclick="App.navigate('dashboard')">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
+        <span class="nav-label">Dashboard</span>
+      </button>
+
+      <button class="nav-item" data-target="makan" onclick="App.navigate('makan')">
+        <div class="nav-icon nav-icon-highlight">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </div>
+        <span class="nav-label">Makan AI</span>
+      </button>
+
+      <button class="nav-item" data-target="riwayat" onclick="App.navigate('riwayat')">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <span class="nav-label">Riwayat</span>
+      </button>
+
+      <button class="nav-item" data-target="berat" onclick="App.navigate('berat')">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+            <line x1="16" y1="8" x2="2" y2="22"></line>
+            <line x1="17.5" y1="15" x2="9" y2="15"></line>
+          </svg>
+        </div>
+        <span class="nav-label">Berat</span>
+      </button>
+
+      <button class="nav-item" data-target="profil" onclick="App.navigate('profil')">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <span class="nav-label">Profil</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- Edit Food Modal -->
+  <div id="modal-edit-food" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Catatan Makanan</h3>
+        <button class="icon-btn-close" onclick="FoodModule.closeEditModal()">&times;</button>
+      </div>
+      <form id="form-edit-food" onsubmit="FoodModule.submitEditFood(event)">
+        <input type="hidden" id="edit-food-id">
+        <div class="form-group">
+          <label class="form-label-sub" for="edit-food-name">Nama Makanan</label>
+          <input type="text" id="edit-food-name" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label-sub" for="edit-food-portion">Porsi</label>
+          <input type="text" id="edit-food-portion" class="form-input" required>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label-sub" for="edit-food-cal">Kalori (kkal)</label>
+            <input type="number" id="edit-food-cal" class="form-input" min="0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label-sub" for="edit-food-pro">Protein (g)</label>
+            <input type="number" id="edit-food-pro" class="form-input" min="0" required>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label-sub" for="edit-food-carbs">Karbo (g)</label>
+            <input type="number" id="edit-food-carbs" class="form-input" min="0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label-sub" for="edit-food-fat">Lemak (g)</label>
+            <input type="number" id="edit-food-fat" class="form-input" min="0" required>
+          </div>
+        </div>
+        <div class="form-row-2 mt-3">
+          <button type="button" class="btn btn-secondary" onclick="FoodModule.closeEditModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/food.js"></script>
+  <script src="js/weight.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

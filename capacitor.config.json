@@ -1,0 +1,9 @@
+{
+  "appId": "id.dietsaya.app",
+  "appName": "DietSaya",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true
+  }
+}

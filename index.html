@@ -221,13 +221,23 @@
         </div>
       </section>
 
-      <!-- ================= TAB 2: INPUT MAKANAN DENGAN AI ================= -->
+      <!-- ================= TAB 2: INPUT MAKANAN (AI & MANUAL) ================= -->
       <section id="view-makan" class="app-view">
         <div class="view-header">
           <div>
-            <h2 class="view-title">Input Makanan AI</h2>
-            <p class="view-subtitle">Ketik makanan dalam bahasa sehari-hari, AI akan memperkirakan nutrisinya.</p>
+            <h2 class="view-title">Catat Makanan</h2>
+            <p class="view-subtitle">Pilih analisis otomatis dengan AI atau input nutrisi secara manual.</p>
           </div>
+        </div>
+
+        <!-- Mode Toggle Switcher -->
+        <div class="input-mode-switcher">
+          <button type="button" id="btn-mode-ai" class="mode-btn active" onclick="FoodModule.switchMode('ai')">
+            <span>✨ Analisis AI (Foto/Teks)</span>
+          </button>
+          <button type="button" id="btn-mode-manual" class="mode-btn" onclick="FoodModule.switchMode('manual')">
+            <span>✍️ Input Manual</span>
+          </button>
         </div>
 
         <!-- AI Text Box Area -->
@@ -280,6 +290,54 @@
             <span class="btn-icon">✨</span>
             <span>Analisis dengan Gemini AI</span>
           </button>
+        </div>
+
+                <!-- ================= FORM INPUT MANUAL ================= -->
+        <div id="manual-input-section" class="card hidden">
+          <h3 class="card-title">Input Nutrisi Manual</h3>
+          <form id="form-manual-food" onsubmit="FoodModule.handleSaveManual(event)">
+            <div class="form-group">
+              <label class="form-label-sub" for="manual-food-name">Nama Makanan / Minuman</label>
+              <input type="text" id="manual-food-name" class="form-input" placeholder="Misal: Dada Ayam Panggang" required>
+            </div>
+            <div class="form-group mt-2">
+              <label class="form-label-sub" for="manual-food-portion">Porsi</label>
+              <input type="text" id="manual-food-portion" class="form-input" placeholder="Misal: 1 porsi / 150 gram" required>
+            </div>
+            <div class="form-row-2 mt-2">
+              <div class="form-group">
+                <label class="form-label-sub" for="manual-food-cal">Kalori (kkal)</label>
+                <input type="number" id="manual-food-cal" class="form-input" min="0" placeholder="0" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label-sub" for="manual-food-pro">Protein (g)</label>
+                <input type="number" id="manual-food-pro" class="form-input" min="0" placeholder="0" required>
+              </div>
+            </div>
+            <div class="form-row-2 mt-2">
+              <div class="form-group">
+                <label class="form-label-sub" for="manual-food-carbs">Karbohidrat (g)</label>
+                <input type="number" id="manual-food-carbs" class="form-input" min="0" placeholder="0" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label-sub" for="manual-food-fat">Lemak (g)</label>
+                <input type="number" id="manual-food-fat" class="form-input" min="0" placeholder="0" required>
+              </div>
+            </div>
+            <div class="form-row-2 mt-2">
+              <div class="form-group">
+                <label class="form-label-sub" for="manual-meal-date">Tanggal</label>
+                <input type="date" id="manual-meal-date" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label-sub" for="manual-meal-time">Waktu</label>
+                <input type="time" id="manual-meal-time" class="form-input" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block mt-3">
+              <span>💾 Simpan Makanan ke Catatan</span>
+            </button>
+          </form>
         </div>
 
         <!-- AI Analysis Results & Confirmation Area -->

@@ -1,5 +1,5 @@
 /**
- * DietSaya - Food & AI Analysis Module (Text + Image Vision Multimodal)
+ * DietSaya - Food & AI Analysis Module (Text, Photo & Manual Input)
  */
 
 const FoodModule = (() => {
@@ -7,6 +7,7 @@ const FoodModule = (() => {
   let allFoodLogs = [];
   let currentImageBase64 = null;
   let currentImageMimeType = null;
+  let activeInputMode = 'ai'; // 'ai' or 'manual'
 
   function init() {
     const today = new Date().toISOString().split('T')[0];
@@ -14,11 +15,37 @@ const FoodModule = (() => {
 
     const dateInput = document.getElementById('input-meal-date');
     const timeInput = document.getElementById('input-meal-time');
+    const manualDate = document.getElementById('manual-meal-date');
+    const manualTime = document.getElementById('manual-meal-time');
     const filterHistInput = document.getElementById('filter-history-date');
 
     if (dateInput) dateInput.value = today;
     if (timeInput) timeInput.value = nowTime;
+    if (manualDate) manualDate.value = today;
+    if (manualTime) manualTime.value = nowTime;
     if (filterHistInput) filterHistInput.value = today;
+  }
+
+  function switchMode(mode) {
+    activeInputMode = mode;
+    const aiCard = document.querySelector('.ai-input-card');
+    const aiResultSection = document.getElementById('ai-result-section');
+    const manualSection = document.getElementById('manual-input-section');
+    const btnAi = document.getElementById('btn-mode-ai');
+    const btnManual = document.getElementById('btn-mode-manual');
+
+    if (mode === 'ai') {
+      if (btnAi) btnAi.classList.add('active');
+      if (btnManual) btnManual.classList.remove('active');
+      if (aiCard) aiCard.classList.remove('hidden');
+      if (manualSection) manualSection.classList.add('hidden');
+    } else {
+      if (btnManual) btnManual.classList.add('active');
+      if (btnAi) btnAi.classList.remove('active');
+      if (aiCard) aiCard.classList.add('hidden');
+      if (aiResultSection) aiResultSection.classList.add('hidden');
+      if (manualSection) manualSection.classList.remove('hidden');
+    }
   }
 
   function fillSample(text) {
@@ -274,6 +301,51 @@ const FoodModule = (() => {
     }
   }
 
+  /**
+   * Menyimpan makanan dari form Input Manual
+   */
+  async function handleSaveManual(e) {
+    e.preventDefault();
+
+    const manualItem = {
+      food_name: document.getElementById('manual-food-name').value.trim(),
+      portion: document.getElementById('manual-food-portion').value.trim(),
+      calories: Number(document.getElementById('manual-food-cal').value) || 0,
+      protein: Number(document.getElementById('manual-food-pro').value) || 0,
+      carbs: Number(document.getElementById('manual-food-carbs').value) || 0,
+      fat: Number(document.getElementById('manual-food-fat').value) || 0,
+      fiber: 0,
+      source: 'manual_input',
+      date: document.getElementById('manual-meal-date').value || new Date().toISOString().split('T')[0],
+      time: document.getElementById('manual-meal-time').value || new Date().toTimeString().slice(0, 5)
+    };
+
+    if (!manualItem.food_name) {
+      App.showToast("Nama makanan wajib diisi.", "error");
+      return;
+    }
+
+    App.showLoading("Menyimpan makanan manual...");
+    const res = await Api.request('saveFood', { items: [manualItem] });
+    App.hideLoading();
+
+    if (res.success) {
+      App.showToast("Makanan berhasil dicatat!", "success");
+      // Reset form
+      document.getElementById('manual-food-name').value = '';
+      document.getElementById('manual-food-portion').value = '';
+      document.getElementById('manual-food-cal').value = '';
+      document.getElementById('manual-food-pro').value = '';
+      document.getElementById('manual-food-carbs').value = '';
+      document.getElementById('manual-food-fat').value = '';
+      
+      await App.refreshAllData();
+      App.navigate('dashboard');
+    } else {
+      App.showToast(res.message || "Gagal menyimpan makanan.", "error");
+    }
+  }
+
   function setFoodLogs(logs) {
     allFoodLogs = logs || [];
     filterHistoryByDate();
@@ -415,6 +487,7 @@ const FoodModule = (() => {
 
   return {
     init,
+    switchMode,
     fillSample,
     handleImageSelected,
     removePhoto,
@@ -424,6 +497,7 @@ const FoodModule = (() => {
     addEmptyItemRow,
     cancelAIResult,
     saveConfirmedItems,
+    handleSaveManual,
     setFoodLogs,
     filterHistoryByDate,
     resetHistoryFilterToday,

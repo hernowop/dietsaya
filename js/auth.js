@@ -1,19 +1,15 @@
-﻿/**
+/**
  * DietSaya - Authentication Module
- * Menggunakan Google Identity Services (GIS) OAuth 2.0 ID Token.
- * Keamanan: ID Token diverifikasi langsung di server Google Apps Script.
+ * Menggunakan Google Identity Services (GIS) dengan Auto-Login Persistent (LocalStorage).
+ * User tidak perlu login ulang setiap kali membuka aplikasi.
  */
 
 const AuthModule = (() => {
-  // Masukkan Google OAuth Web Client ID Anda dari Google Cloud Console
   const GOOGLE_CLIENT_ID = "446360710878-kg53d5r5ljtjh79ekjo5p069apknm9l0.apps.googleusercontent.com";
 
   let currentUser = null;
   let currentIdToken = null;
 
-  /**
-   * Parse payload JWT dari Google ID Token
-   */
   function parseJwt(token) {
     try {
       const base64Url = token.split('.')[1];
@@ -23,38 +19,41 @@ const AuthModule = (() => {
       }).join(''));
       return JSON.parse(jsonPayload);
     } catch (e) {
-      console.error("Gagal membaca payload JWT:", e);
       return null;
     }
   }
 
   /**
-   * Inisialisasi Google Sign-In Button
+   * Inisialisasi Auth & Auto-Login
    */
-  function initGoogleAuth() {
-    // Periksa token tersimpan di sessionStorage
-    const savedToken = sessionStorage.getItem('diet_id_token');
-    if (savedToken) {
-      currentIdToken = savedToken;
-      const profile = parseJwt(savedToken);
-      if (profile && profile.exp * 1000 > Date.now()) {
-        currentUser = {
-          name: profile.name,
-          email: profile.email,
-          picture: profile.picture
-        };
-        verifyAndLaunchApp(savedToken);
-        return;
-      } else {
-        sessionStorage.removeItem('diet_id_token');
+  async function initGoogleAuth() {
+    // 1. Cek apakah ada sesi login tersimpan di localStorage
+    const savedToken = localStorage.getItem('diet_id_token');
+    const savedUserStr = localStorage.getItem('diet_user_profile');
+
+    if (savedUserStr) {
+      try {
+        currentUser = JSON.parse(savedUserStr);
+        currentIdToken = savedToken || '';
+
+        // Langsung tampilkan dashboard tanpa menunggu
+        updateHeaderAndProfile(currentUser, null);
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+
+        // Refresh data di background
+        App.refreshAllData().catch(err => console.log('Background sync:', err));
+      } catch (e) {
+        console.error('Failed to restore saved session:', e);
       }
     }
 
+    // 2. Inisialisasi Google Identity SDK untuk background token refresh & button
     if (window.google && window.google.accounts) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredentialResponse,
-        auto_select: false,
+        auto_select: true, // Otomatis login jika sudah pernah login sebelumnya
         cancel_on_tap_outside: true
       });
 
@@ -68,13 +67,18 @@ const AuthModule = (() => {
           width: 280
         });
       }
+
+      // Jika belum ada user tersimpan, coba one-tap prompt
+      if (!savedUserStr) {
+        window.google.accounts.id.prompt();
+      }
     } else {
       setTimeout(initGoogleAuth, 300);
     }
   }
 
   /**
-   * Callback setelah user memilih akun Google di popup/button
+   * Callback setelah user memilih akun Google
    */
   async function handleGoogleCredentialResponse(response) {
     const idToken = response.credential;
@@ -91,6 +95,10 @@ const AuthModule = (() => {
       picture: profile?.picture || ''
     };
 
+    // Simpan ke localStorage agar tidak perlu login ulang
+    localStorage.setItem('diet_id_token', idToken);
+    localStorage.setItem('diet_user_profile', JSON.stringify(currentUser));
+
     await verifyAndLaunchApp(idToken);
   }
 
@@ -105,73 +113,85 @@ const AuthModule = (() => {
     App.hideLoading();
 
     if (result.success && result.data) {
-      // Simpan session
-      sessionStorage.setItem('diet_id_token', token);
-      
-      // Update UI Profil
       updateHeaderAndProfile(currentUser, result.data.settings);
 
-      // Tampilkan App Container, sembunyikan Login Screen
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('app-container').classList.remove('hidden');
 
-      // Load data dashboard & inisialisasi aplikasi
       App.initAppData(result.data);
       App.showToast(`Selamat datang, ${currentUser.name}!`, "success");
     } else {
-      sessionStorage.removeItem('diet_id_token');
-      showAuthError(result.message || "Akun tidak memiliki akses ke sistem ini.");
-      document.getElementById('auth-screen').classList.remove('hidden');
-      document.getElementById('app-container').classList.add('hidden');
+      // Jika akun ditolak oleh backend (bukan akun pemilik)
+      if (result.message && result.message.includes('tidak memiliki akses')) {
+        logout();
+        showAuthError(result.message);
+      }
     }
   }
 
   function updateHeaderAndProfile(user, settings) {
     if (!user) return;
-    document.getElementById('user-name').textContent = user.name;
-    document.getElementById('profile-name').textContent = user.name;
-    document.getElementById('profile-email').textContent = user.email;
+    const nameEl = document.getElementById('user-name');
+    const pNameEl = document.getElementById('profile-name');
+    const pEmailEl = document.getElementById('profile-email');
+    const avatarEl = document.getElementById('user-avatar');
+    const pAvatarEl = document.getElementById('profile-avatar');
+
+    if (nameEl) nameEl.textContent = user.name;
+    if (pNameEl) pNameEl.textContent = user.name;
+    if (pEmailEl) pEmailEl.textContent = user.email;
     
     if (user.picture) {
-      document.getElementById('user-avatar').src = user.picture;
-      document.getElementById('profile-avatar').src = user.picture;
+      if (avatarEl) avatarEl.src = user.picture;
+      if (pAvatarEl) pAvatarEl.src = user.picture;
     }
 
     if (settings) {
-      document.getElementById('target-calories').value = settings.calorie_target || 2000;
-      document.getElementById('target-protein').value = settings.protein_target || 120;
-      document.getElementById('target-carbs').value = settings.carbs_target || 250;
-      document.getElementById('target-fat').value = settings.fat_target || 65;
+      const calEl = document.getElementById('target-calories');
+      const proEl = document.getElementById('target-protein');
+      const carEl = document.getElementById('target-carbs');
+      const fatEl = document.getElementById('target-fat');
+
+      if (calEl) calEl.value = settings.calorie_target || 2000;
+      if (proEl) proEl.value = settings.protein_target || 120;
+      if (carEl) carEl.value = settings.carbs_target || 250;
+      if (fatEl) fatEl.value = settings.fat_target || 65;
     }
   }
 
   function showAuthError(message) {
     const errorEl = document.getElementById('auth-error');
-    errorEl.textContent = message;
-    errorEl.classList.remove('hidden');
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+    }
   }
 
   function hideAuthError() {
     const errorEl = document.getElementById('auth-error');
-    errorEl.classList.add('hidden');
+    if (errorEl) errorEl.classList.add('hidden');
   }
 
   function logout() {
-    sessionStorage.removeItem('diet_id_token');
+    localStorage.removeItem('diet_id_token');
+    localStorage.removeItem('diet_user_profile');
+    sessionStorage.clear();
     currentUser = null;
     currentIdToken = null;
+
     if (window.google && window.google.accounts) {
       window.google.accounts.id.disableAutoSelect();
     }
+
     document.getElementById('app-container').classList.add('hidden');
     document.getElementById('auth-screen').classList.remove('hidden');
-    App.showToast("Anda telah keluar.", "info");
+    App.showToast("Anda telah keluar dari akun.", "info");
   }
 
   return {
     init: initGoogleAuth,
     getUser: () => currentUser,
-    getIdToken: () => currentIdToken,
+    getIdToken: () => currentIdToken || localStorage.getItem('diet_id_token'),
     logout
   };
 })();

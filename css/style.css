@@ -1070,3 +1070,344 @@ body {
   color: var(--primary-dark);
   box-shadow: var(--shadow-sm);
 }
+
+/* ==========================================================
+   ROMANTIC LOVE & DEDICATION BANNER (HERNOWO & IKAAA)
+   ========================================================== */
+
+.card-love-dedication {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fff1f2 0%, #fdf2f8 35%, #fff0f5 70%, #f5f3ff 100%);
+  border: 2.5px solid #fb7185;
+  border-radius: var(--radius-lg);
+  padding: 22px 18px 18px 18px;
+  box-shadow: 0 10px 25px -3px rgba(244, 63, 94, 0.22), 
+              0 4px 12px -2px rgba(236, 72, 153, 0.18),
+              inset 0 0 15px rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  user-select: none;
+  animation: loveCardFloat 4s ease-in-out infinite alternate;
+  margin-bottom: 16px;
+}
+
+.card-love-dedication:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 16px 30px -4px rgba(244, 63, 94, 0.32), 
+              0 0 20px rgba(244, 63, 94, 0.25);
+}
+
+.card-love-dedication:active {
+  transform: scale(0.98);
+}
+
+@keyframes loveCardFloat {
+  0% {
+    box-shadow: 0 10px 25px -3px rgba(244, 63, 94, 0.22), 0 0 12px rgba(236, 72, 153, 0.15);
+    border-color: #fb7185;
+  }
+  100% {
+    box-shadow: 0 14px 28px -3px rgba(244, 63, 94, 0.35), 0 0 22px rgba(244, 63, 94, 0.28);
+    border-color: #f43f5e;
+  }
+}
+
+/* Ambient Hearts Container inside Card */
+.love-ambient-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.ambient-card-heart {
+  position: absolute;
+  bottom: -20px;
+  animation: floatAmbientHeart linear forwards;
+  opacity: 0.75;
+  filter: drop-shadow(0 2px 4px rgba(244, 63, 94, 0.2));
+}
+
+@keyframes floatAmbientHeart {
+  0% {
+    transform: translateY(0) scale(0.6) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-220px) scale(1.15) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+/* Top Badge */
+.love-top-badge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #f43f5e, #e11d48, #db2777);
+  color: #ffffff;
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  box-shadow: 0 3px 10px rgba(225, 29, 72, 0.35);
+  margin-bottom: 14px;
+}
+
+.love-pulsing-heart {
+  display: inline-block;
+  animation: heartPulse 1s infinite;
+}
+
+@keyframes heartPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+}
+
+/* Main Content */
+.love-main-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.love-heart-pulse-icon {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffe4e6;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid #fda4af;
+}
+
+.big-heart {
+  font-size: 2.1rem;
+  animation: bigHeartBeat 1.2s ease-in-out infinite;
+  display: inline-block;
+  z-index: 3;
+}
+
+.ring-pulse, .ring-pulse-2 {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #f43f5e;
+  animation: rippleGlow 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+.ring-pulse-2 {
+  animation-delay: 1s;
+}
+
+@keyframes bigHeartBeat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.25); }
+  30% { transform: scale(1.05); }
+  45% { transform: scale(1.2); }
+  60% { transform: scale(1); }
+}
+
+@keyframes rippleGlow {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+/* Love Text */
+.love-text-wrapper {
+  flex: 1;
+}
+
+.love-hero-title {
+  font-size: 1.18rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #881337;
+  margin-bottom: 6px;
+}
+
+.author-name {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+}
+
+.wife-name {
+  background: linear-gradient(135deg, #e11d48, #db2777, #f43f5e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  font-size: 1.3rem;
+  text-shadow: 0 0 15px rgba(244, 63, 94, 0.25);
+  animation: shineWife 3s infinite linear;
+}
+
+@keyframes shineWife {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.25) drop-shadow(0 0 6px rgba(244, 63, 94, 0.4)); }
+}
+
+.love-quote {
+  font-size: 0.86rem;
+  color: #9f1239;
+  line-height: 1.45;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Footer Action & Meter */
+.love-footer-action {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-love-burst {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #be123c 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 10px 18px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-love-burst:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.5);
+  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 50%, #e11d48 100%);
+}
+
+.btn-love-burst:active {
+  transform: scale(0.95);
+}
+
+.love-meter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
+  box-shadow: 0 2px 6px rgba(244, 63, 94, 0.1);
+}
+
+.love-tap-hint {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #be123c;
+  margin-top: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Pulse Pop Animation for numbers */
+.pulse-pop {
+  animation: numberPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes numberPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); color: #e11d48; }
+  100% { transform: scale(1); }
+}
+
+/* Dedicated Love Badge in Profile Card */
+.badge-love {
+  background: linear-gradient(135deg, #f43f5e, #db2777);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 6px rgba(244, 63, 94, 0.3);
+  animation: heartPulse 2.5s infinite ease-in-out;
+}
+
+/* Floating Screen Hearts (Animasi Lope-lope Layar Penuh) */
+.floating-screen-heart {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  user-select: none;
+  animation: flyAndFade ease-out forwards;
+  filter: drop-shadow(0 4px 8px rgba(244, 63, 94, 0.35));
+}
+
+@keyframes flyAndFade {
+  0% {
+    transform: translate(0, 0) scale(0.4) rotate(0deg);
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 1;
+    transform: translate(calc(var(--drift-x, 0px) * 0.5), -140px) scale(1.3) rotate(calc(var(--rot-deg, 0deg) * 0.5));
+  }
+  100% {
+    transform: translate(var(--drift-x, 0px), -360px) scale(0.8) rotate(var(--rot-deg, 0deg));
+    opacity: 0;
+  }
+}
+
+/* Toast Love Popup */
+.toast-love-popup {
+  background: linear-gradient(135deg, #fff1f2, #ffe4e6) !important;
+  color: #9f1239 !important;
+  border: 1.5px solid #fda4af !important;
+  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.25) !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.love-toast-icon {
+  font-size: 1.3rem;
+  animation: heartPulse 0.8s infinite;
+}

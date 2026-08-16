@@ -52,8 +52,17 @@ const AuthModule = (() => {
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
 
-        // Langsung tarik data terbaru dari Google Apps Script
-        App.refreshAllData().catch(err => console.log('Initial sync:', err));
+        // OPTIMASI: Muat data dari cache lokal secara instan (0ms)
+        const savedDataStr = localStorage.getItem('dietsaya_cached_data');
+        if (savedDataStr) {
+          try {
+            const cachedData = JSON.parse(savedDataStr);
+            App.initAppData(cachedData);
+          } catch (e) {}
+        }
+
+        // Sinkronisasi diam-diam di background
+        App.refreshAllData().catch(err => console.log('Background initial sync:', err));
       } catch (e) {
         console.error('Failed to restore saved session:', e);
       }

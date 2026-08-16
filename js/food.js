@@ -313,17 +313,27 @@ const FoodModule = (() => {
       return;
     }
 
-    App.showLoading("Menyimpan catatan makanan ke Google Sheets...");
+    App.showLoading("Menyimpan & meminta saran AI...");
     const res = await Api.request('saveFood', { items: pendingAIItems });
     App.hideLoading();
 
     if (res.success) {
-      if (res.data && res.data.aiAdvice) {
-        DashboardModule.setAiAdvice(res.data.aiAdvice);
+      if (res.data) {
+        if (res.data.aiAdvice) {
+          DashboardModule.setAiAdvice(res.data.aiAdvice);
+        }
+        if (res.data.dashboard) {
+          DashboardModule.render(res.data.dashboard);
+        }
+        if (res.data.foodLogs) {
+          FoodModule.setFoodLogs(res.data.foodLogs);
+        }
+        try {
+          localStorage.setItem('dietsaya_cached_data', JSON.stringify(res.data));
+        } catch (e) {}
       }
       App.showToast("Catatan makanan berhasil disimpan!", "success");
       cancelAIResult();
-      await App.refreshAllData();
       App.navigate('dashboard');
     } else {
       App.showToast(res.message || "Gagal menyimpan catatan makanan.", "error");
@@ -354,13 +364,24 @@ const FoodModule = (() => {
       return;
     }
 
-    App.showLoading("Menyimpan makanan manual...");
+    App.showLoading("Menyimpan & menganalisis nutrisi...");
     const res = await Api.request('saveFood', { items: [manualItem] });
     App.hideLoading();
 
     if (res.success) {
-      if (res.data && res.data.aiAdvice) {
-        DashboardModule.setAiAdvice(res.data.aiAdvice);
+      if (res.data) {
+        if (res.data.aiAdvice) {
+          DashboardModule.setAiAdvice(res.data.aiAdvice);
+        }
+        if (res.data.dashboard) {
+          DashboardModule.render(res.data.dashboard);
+        }
+        if (res.data.foodLogs) {
+          FoodModule.setFoodLogs(res.data.foodLogs);
+        }
+        try {
+          localStorage.setItem('dietsaya_cached_data', JSON.stringify(res.data));
+        } catch (e) {}
       }
       App.showToast("Makanan berhasil dicatat!", "success");
       // Reset form
@@ -371,7 +392,6 @@ const FoodModule = (() => {
       document.getElementById('manual-food-carbs').value = '';
       document.getElementById('manual-food-fat').value = '';
       
-      await App.refreshAllData();
       App.navigate('dashboard');
     } else {
       App.showToast(res.message || "Gagal menyimpan makanan.", "error");

@@ -119,6 +119,10 @@ const App = (() => {
   function initAppData(initData) {
     if (!initData) return;
 
+    try {
+      localStorage.setItem('dietsaya_cached_data', JSON.stringify(initData));
+    } catch (e) {}
+
     if (initData.spreadsheetUrl) {
       updateSpreadsheetLink(initData.spreadsheetUrl);
     }
@@ -145,6 +149,10 @@ const App = (() => {
     try {
       const res = await Api.request('getDashboardData', {}, 'POST');
       if (res.success && res.data) {
+        try {
+          localStorage.setItem('dietsaya_cached_data', JSON.stringify(res.data));
+        } catch (e) {}
+
         if (res.data.spreadsheetUrl) {
           updateSpreadsheetLink(res.data.spreadsheetUrl);
         }

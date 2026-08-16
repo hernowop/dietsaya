@@ -392,7 +392,16 @@ function saveFoodLogs(user, items) {
     Logger.log('AI Advice error: ' + err.toString());
   }
 
-  return { savedCount: rows.length, aiAdvice: aiAdvice };
+  // OPTIMASI: Kembalikan data dashboard lengkap agar frontend tidak butuh request kedua
+  const freshData = getDashboardData(user);
+
+  return {
+    savedCount: rows.length,
+    aiAdvice: aiAdvice,
+    dashboard: freshData.dashboard,
+    foodLogs: freshData.foodLogs,
+    spreadsheetUrl: freshData.spreadsheetUrl
+  };
 }
 
 /**
@@ -454,7 +463,7 @@ Keluarkan HANYA dalam format JSON murni tanpa format markdown codeblock:
 
     const payload = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, response_mime_type: "application/json" }
+      generationConfig: { temperature: 0.4, max_output_tokens: 350, response_mime_type: "application/json" }
     };
 
     for (let i = 0; i < candidateModels.length; i++) {

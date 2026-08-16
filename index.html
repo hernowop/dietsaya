@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DietSaya â€” Pencatat Diet Pribadi & AI Kalori</title>
+  <title>DietSaya — Pencatat Diet Pribadi & AI Kalori</title>
   
   <!-- Meta SEO & PWA -->
   <meta name="description" content="Aplikasi pencatatan diet pribadi dengan estimasi kalori dan nutrisi otomatis bertenaga Google Gemini AI.">
@@ -16,8 +16,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DietSaya">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,13 +46,13 @@
   <section id="auth-screen" class="auth-screen">
     <div class="auth-card">
       <div class="auth-logo">
-        <div class="logo-icon">ðŸ¥—</div>
+        <div class="logo-icon">🥗</div>
         <h1>DietSaya</h1>
         <p class="auth-subtitle">Pencatat Diet Cerdas & AI Nutritionist Pribadi</p>
       </div>
 
       <div class="auth-info-box">
-        <span class="lock-icon">ðŸ”’</span>
+        <span class="lock-icon">🔒</span>
         <p>Aplikasi ini bersifat privat. Hanya Akun Google yang terdaftar yang memiliki izin akses.</p>
       </div>
 
@@ -149,7 +147,7 @@
             </div>
           </div>
 
-          <!-- Karbohidrat -->
+          <!-- Carbs -->
           <div class="macro-card macro-carbs">
             <div class="macro-header">
               <span class="macro-dot dot-carbs"></span>
@@ -164,7 +162,7 @@
             </div>
           </div>
 
-          <!-- Lemak -->
+          <!-- Fat -->
           <div class="macro-card macro-fat">
             <div class="macro-header">
               <span class="macro-dot dot-fat"></span>
@@ -180,24 +178,24 @@
           </div>
         </div>
 
-        <!-- 7-Day Stats Summary Banner -->
-        <div class="card stats-7day-card">
+        <!-- 7-Day Rolling Summary Stats -->
+        <div class="card mt-3">
           <h3 class="card-title">Statistik 7 Hari Terakhir</h3>
-          <div class="stats-7day-grid">
-            <div class="stat-pill">
-              <span class="stat-lbl">Rata-rata Kalori</span>
+          <div class="stat-grid-4">
+            <div class="stat-item">
+              <span class="stat-label">Rata-rata Kalori</span>
               <strong id="stat-7d-avg-cal" class="stat-val">0 kkal</strong>
             </div>
-            <div class="stat-pill">
-              <span class="stat-lbl">Rata-rata Protein</span>
+            <div class="stat-item">
+              <span class="stat-label">Rata-rata Protein</span>
               <strong id="stat-7d-avg-pro" class="stat-val">0 g</strong>
             </div>
-            <div class="stat-pill">
-              <span class="stat-lbl">Berat Terakhir</span>
+            <div class="stat-item">
+              <span class="stat-label">Berat Terakhir</span>
               <strong id="stat-7d-last-weight" class="stat-val">- kg</strong>
             </div>
-            <div class="stat-pill">
-              <span class="stat-lbl">Perubahan BB</span>
+            <div class="stat-item">
+              <span class="stat-label">Perubahan BB</span>
               <strong id="stat-7d-change-weight" class="stat-val">0.0 kg</strong>
             </div>
           </div>
@@ -213,7 +211,7 @@
           <div id="dashboard-food-list" class="food-card-list">
             <!-- Populated dynamically -->
             <div class="empty-state">
-              <div class="empty-icon">ðŸ½ï¸</div>
+              <div class="empty-icon">🥗</div>
               <p>Belum ada makanan yang dicatat hari ini.</p>
               <button class="btn btn-secondary btn-sm" onclick="App.navigate('makan')">Catat Makanan Pertama</button>
             </div>
@@ -233,23 +231,34 @@
         <!-- Mode Toggle Switcher -->
         <div class="input-mode-switcher">
           <button type="button" id="btn-mode-ai" class="mode-btn active" onclick="FoodModule.switchMode('ai')">
-            <span>âœ¨ Analisis AI (Foto/Teks)</span>
+            <span>✨ Analisis AI (Foto/Teks)</span>
           </button>
           <button type="button" id="btn-mode-manual" class="mode-btn" onclick="FoodModule.switchMode('manual')">
-            <span>âœï¸ Input Manual</span>
+            <span>✏️ Input Manual</span>
           </button>
         </div>
 
         <!-- AI Text Box Area -->
         <div class="card ai-input-card">
-          <!-- Pilihan Input: Kamera / Foto atau Teks -->
+          <!-- Pilihan Input: Kamera Langsung atau Pilih dari Galeri -->
           <div class="photo-upload-container">
-            <input type="file" id="ai-food-image-input" accept="image/*" capture="environment" class="hidden" onchange="FoodModule.handleImageSelected(event)">
-            <div id="photo-upload-placeholder" class="photo-upload-placeholder" onclick="document.getElementById('ai-food-image-input').click()">
-              <div class="photo-icon">ðŸ“¸</div>
+            <!-- Hidden File Inputs -->
+            <input type="file" id="ai-food-camera-input" accept="image/*" capture="environment" class="hidden" onchange="FoodModule.handleImageSelected(event)">
+            <input type="file" id="ai-food-gallery-input" accept="image/*" class="hidden" onchange="FoodModule.handleImageSelected(event)">
+
+            <div id="photo-upload-placeholder" class="photo-upload-placeholder">
+              <div class="photo-icon">📷</div>
               <div class="photo-text">
-                <strong>Foto Makanan (Kamera / Galeri)</strong>
-                <span>AI akan otomatis menganalisis makanan dari foto</span>
+                <strong>Unggah Foto Makanan</strong>
+                <span>AI Gemini akan otomatis menghitung kalori & makronutrisinya</span>
+              </div>
+              <div class="photo-action-buttons">
+                <button type="button" class="btn-photo-action" onclick="event.stopPropagation(); document.getElementById('ai-food-camera-input').click()">
+                  <span>📸 Buka Kamera</span>
+                </button>
+                <button type="button" class="btn-photo-action btn-photo-gallery" onclick="event.stopPropagation(); document.getElementById('ai-food-gallery-input').click()">
+                  <span>🖼️ Ambil dari Galeri</span>
+                </button>
               </div>
             </div>
             
@@ -286,13 +295,12 @@
             </div>
           </div>
 
-          <button id="btn-analyze-gemini" class="btn btn-primary btn-block mt-3" onclick="FoodModule.analyzeWithAI()">
-            <span class="btn-icon">âœ¨</span>
-            <span>Analisis dengan Gemini AI</span>
+          <button type="button" class="btn btn-primary btn-block btn-lg mt-3" onclick="FoodModule.analyzeWithAI()">
+            <span>✨ Analisis Kalori dengan AI</span>
           </button>
         </div>
 
-                <!-- ================= FORM INPUT MANUAL ================= -->
+        <!-- Manual Input Section -->
         <div id="manual-input-section" class="card hidden">
           <h3 class="card-title">Input Nutrisi Manual</h3>
           <form id="form-manual-food" onsubmit="FoodModule.handleSaveManual(event)">
@@ -335,7 +343,7 @@
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-block mt-3">
-              <span>ðŸ’¾ Simpan Makanan ke Catatan</span>
+              <span>💾 Simpan Makanan ke Catatan</span>
             </button>
           </form>
         </div>
@@ -348,7 +356,7 @@
           </div>
 
           <div class="alert alert-info">
-            <span class="alert-icon">â„¹ï¸</span>
+            <span class="alert-icon">ℹ️</span>
             <span id="ai-estimation-note">Nilai merupakan estimasi Gemini AI. Silakan koreksi angka jika diperlukan sebelum menyimpan.</span>
           </div>
 
@@ -372,7 +380,7 @@
           <div class="action-buttons-grid mt-3">
             <button class="btn btn-secondary" onclick="FoodModule.cancelAIResult()">Batal</button>
             <button class="btn btn-success btn-lg" onclick="FoodModule.saveConfirmedItems()">
-              <span>ðŸ’¾ Simpan ke Catatan</span>
+              <span>💾 Simpan ke Catatan</span>
             </button>
           </div>
         </div>
@@ -428,104 +436,66 @@
 
         <!-- Weight Input Form -->
         <div class="card">
-          <h3 class="card-title">Catat Berat Badan Baru</h3>
+          <h3 class="card-title">Catat Berat Badan Hari Ini</h3>
           <form id="form-weight" onsubmit="WeightModule.handleSaveWeight(event)">
             <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label-sub" for="weight-input-date">Tanggal</label>
-                <input type="date" id="weight-input-date" class="form-input" required>
+                <label class="form-label-sub" for="weight-date">Tanggal</label>
+                <input type="date" id="weight-date" class="form-input" required>
               </div>
               <div class="form-group">
-                <label class="form-label-sub" for="weight-input-val">Berat (kg)</label>
-                <input type="number" step="0.1" min="20" max="300" id="weight-input-val" class="form-input" placeholder="Contoh: 68.5" required>
+                <label class="form-label-sub" for="weight-value">Berat Badan (kg)</label>
+                <input type="number" step="0.1" id="weight-value" class="form-input" placeholder="Misal: 65.5" required>
               </div>
             </div>
-
             <div class="form-group mt-2">
-              <label class="form-label-sub" for="weight-input-note">Catatan (Opsional)</label>
-              <input type="text" id="weight-input-note" class="form-input" placeholder="Misal: Pagi hari sebelum sarapan">
+              <label class="form-label-sub" for="weight-note">Catatan Tambahan (Opsional)</label>
+              <input type="text" id="weight-note" class="form-input" placeholder="Misal: Pagi hari setelah bangun tidur">
             </div>
-
             <button type="submit" class="btn btn-primary btn-block mt-3">
-              <span>Simpan Berat Badan</span>
+              <span>Simpan Catatan Berat Badan</span>
             </button>
           </form>
         </div>
 
-        <!-- Weight Trend Chart -->
-        <div class="card chart-card mt-3">
+        <!-- Weight Chart -->
+        <div class="card mt-3">
           <h3 class="card-title">Grafik Tren Berat Badan</h3>
-          <div class="chart-wrapper">
-            <canvas id="weight-chart"></canvas>
+          <div class="chart-container">
+            <canvas id="weightChart"></canvas>
           </div>
         </div>
 
-        <!-- Weight Logs List -->
-        <div class="section-block mt-3">
+        <!-- Weight Log List -->
+        <div class="section-block">
           <h3 class="section-title">Riwayat Timbangan</h3>
-          <div id="weight-logs-list" class="weight-logs-container">
-            <!-- Dynamic list -->
+          <div id="weight-logs-list" class="weight-logs-list mt-2">
+            <!-- Dynamic Items -->
           </div>
         </div>
       </section>
 
-      <!-- ================= TAB 5: PROFIL & PENGATURAN ================= -->
+      <!-- ================= TAB 5: PROFIL & LOVE MESSAGE ================= -->
       <section id="view-profil" class="app-view">
         <div class="view-header">
           <div>
-            <h2 class="view-title">Profil & Target Nutrisi</h2>
-            <p class="view-subtitle">Sesuaikan target kalori dan makronutrisi harianmu.</p>
+            <h2 class="view-title">Pengaturan Profil</h2>
+            <p class="view-subtitle">Target nutrisi harian & pesan cinta spesial.</p>
           </div>
         </div>
 
-        <!-- ================= ROMANTIC DEDICATION BANNER (HERNOWO & IKAAA) ================= -->
-        <div class="card card-love-dedication" onclick="LoveModule.burstHearts(event)" title="Klik untuk tebar lope-lope!">
-          <div id="love-ambient-hearts" class="love-ambient-container"></div>
-          
-          <!-- Glowing Animated Top Badge -->
-          <div class="love-top-badge">
-            <span class="love-pulsing-heart">💖</span>
-            <span class="love-badge-text">DEDIKASI SPESIAL & PENUH CINTA</span>
-            <span class="love-pulsing-heart">💖</span>
-          </div>
-
-          <!-- Main Conspicuous Dedication Headline -->
-          <div class="love-main-content">
-            <div class="love-avatar-couple">
-              <div class="love-heart-pulse-icon">
-                <span class="big-heart">❤️</span>
-                <span class="ring-pulse"></span>
-                <span class="ring-pulse-2"></span>
-              </div>
+        <!-- Special Dedication & Interactive Love Box -->
+        <div class="card card-love-banner" onclick="LoveModule.burstHearts(event)">
+          <div id="love-ambient-hearts" class="love-ambient-hearts"></div>
+          <div class="love-banner-content">
+            <div class="love-badge">💖 SPECIAL FOR IKAAA TERCINTA 💖</div>
+            <h3 class="love-title">Semangat Sehat & Bahagia Selalu Sayang! 🥰</h3>
+            <p class="love-subtitle">Aplikasi ini dibuat khusus dengan segenap cinta oleh suamimu, <strong>Hernowo</strong>.</p>
+            <div class="love-btn-wrapper">
+              <button type="button" class="btn-love-burst" onclick="LoveModule.burstHearts(event)">
+                <span class="heart-pulse">❤️</span> Sentuh Untuk Kirim Cinta! (<span id="love-counter-value">100</span>)
+              </button>
             </div>
-
-            <div class="love-text-wrapper">
-              <h3 class="love-hero-title">
-                Dibuat oleh <span class="author-name">Hernowo</span><br>
-                agar <span class="wife-name">Ikaaa</span> Bahagia 🥰
-              </h3>
-              <p class="love-quote">
-                "Spesial untuk istri tercantik sedunia. Semoga aplikasi ini membantu Ikaaa selalu sehat, bugar, langsing, dan bahagia setiap hari!" ✨🌹
-              </p>
-            </div>
-          </div>
-
-          <!-- Interactive Action Area & Love Meter -->
-          <div class="love-footer-action">
-            <button type="button" class="btn-love-burst" onclick="LoveModule.burstHearts(event)">
-              <span class="btn-love-icon">💕</span>
-              <span class="btn-love-label">Kirim Lope ke Hernowo</span>
-              <span class="btn-love-sparkle">✨</span>
-            </button>
-            
-            <div class="love-meter-pill" title="Tingkat Cinta Hernowo ke Ikaaa">
-              <span class="love-meter-icon">📈❤️</span>
-              <span class="love-meter-text">Cinta: <strong id="love-counter-value">999</strong>% (Tak Terhingga)</span>
-            </div>
-          </div>
-          
-          <div class="love-tap-hint">
-            <span>👆 Tap di mana saja pada kartu ini untuk tebar lope-lope! 💕</span>
           </div>
         </div>
 
@@ -538,7 +508,7 @@
               <p id="profile-email" class="profile-email">email@gmail.com</p>
               <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
                 <span class="badge badge-success">Akun Terverifikasi</span>
-                <span class="badge badge-love">💖 Istri Kesayangan Hernowo</span>
+                <span class="badge badge-love">💍 Istri Kesayangan Hernowo</span>
               </div>
             </div>
           </div>
@@ -577,7 +547,7 @@
         <!-- App Info & Logout -->
         <div class="card mt-3">
           <h3 class="card-title">Tentang Aplikasi</h3>
-          <p class="text-muted text-sm">DietSaya v1.0.0 • Personal Edition<br>💖 <strong>Dibuat dengan segenap cinta oleh Hernowo untuk Ikaaa tercinta agar selalu bahagia.</strong><br>Database: Google Sheets â€¢ AI: Google Gemini</p>
+          <p class="text-muted text-sm">DietSaya v1.0.0 — Personal Edition<br>💖 <strong>Dibuat dengan segenap cinta oleh Hernowo untuk Ikaaa tercinta agar selalu bahagia.</strong><br>Database: Google Sheets • AI: Google Gemini</p>
           
           <button class="btn btn-danger btn-block mt-3" onclick="AuthModule.logout()">
             <span>Keluar dari Akun</span>
@@ -709,4 +679,3 @@
   </script>
 </body>
 </html>
-

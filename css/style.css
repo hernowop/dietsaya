@@ -1411,3 +1411,45 @@ body {
   font-size: 1.3rem;
   animation: heartPulse 0.8s infinite;
 }
+/* Photo Action Buttons (Kamera & Galeri) */
+.photo-action-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 10px;
+}
+
+.btn-photo-action {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--primary);
+  background: var(--surface);
+  color: var(--primary-dark);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.btn-photo-action:hover, .btn-photo-action:active {
+  background: var(--primary);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-photo-gallery {
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.btn-photo-gallery:hover, .btn-photo-gallery:active {
+  background: #3b82f6;
+  color: #ffffff;
+}

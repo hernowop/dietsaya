@@ -96,9 +96,13 @@ const FoodModule = (() => {
         currentImageBase64 = dataUrl.split(',')[1];
         currentImageMimeType = 'image/jpeg';
 
-        document.getElementById('photo-preview-img').src = dataUrl;
-        document.getElementById('photo-upload-placeholder').classList.add('hidden');
-        document.getElementById('photo-preview-wrapper').classList.remove('hidden');
+        const previewImg = document.getElementById('photo-preview-img');
+        const placeholder = document.getElementById('photo-upload-placeholder');
+        const previewWrap = document.getElementById('photo-preview-wrapper');
+
+        if (previewImg) previewImg.src = dataUrl;
+        if (placeholder) placeholder.classList.add('hidden');
+        if (previewWrap) previewWrap.classList.remove('hidden');
 
         App.showToast("Foto berhasil dimuat.", "success");
       };
@@ -110,24 +114,34 @@ const FoodModule = (() => {
   function removePhoto() {
     currentImageBase64 = null;
     currentImageMimeType = null;
-    const inputEl = document.getElementById('ai-food-image-input');
-    if (inputEl) inputEl.value = '';
-    document.getElementById('photo-preview-img').src = '';
-    document.getElementById('photo-preview-wrapper').classList.add('hidden');
-    document.getElementById('photo-upload-placeholder').classList.remove('hidden');
+    
+    const camInput = document.getElementById('ai-food-camera-input');
+    const galInput = document.getElementById('ai-food-gallery-input');
+    const oldInput = document.getElementById('ai-food-image-input');
+    if (camInput) camInput.value = '';
+    if (galInput) galInput.value = '';
+    if (oldInput) oldInput.value = '';
+
+    const previewImg = document.getElementById('photo-preview-img');
+    const previewWrap = document.getElementById('photo-preview-wrapper');
+    const placeholder = document.getElementById('photo-upload-placeholder');
+
+    if (previewImg) previewImg.src = '';
+    if (previewWrap) previewWrap.classList.add('hidden');
+    if (placeholder) placeholder.classList.remove('hidden');
   }
 
   async function analyzeWithAI() {
     const textarea = document.getElementById('ai-food-input');
-    const foodText = textarea.value.trim();
+    const foodText = textarea ? textarea.value.trim() : '';
 
     if (!foodText && !currentImageBase64) {
       App.showToast("Silakan ambil foto atau tulis makanan terlebih dahulu.", "error");
       return;
     }
 
-    const mealDate = document.getElementById('input-meal-date').value || new Date().toISOString().split('T')[0];
-    const mealTime = document.getElementById('input-meal-time').value || new Date().toTimeString().slice(0, 5);
+    const mealDate = document.getElementById('input-meal-date')?.value || new Date().toISOString().split('T')[0];
+    const mealTime = document.getElementById('input-meal-time')?.value || new Date().toTimeString().slice(0, 5);
 
     App.showLoading(currentImageBase64 ? "Gemini AI sedang menganalisis foto makanan..." : "Gemini AI sedang memperkirakan kalori...");
 
@@ -156,11 +170,14 @@ const FoodModule = (() => {
         time: mealTime
       }));
 
-      document.getElementById('ai-estimation-note').textContent = res.data.note || 
-        "Nilai merupakan estimasi Gemini AI. Silakan periksa dan koreksi sebelum disimpan.";
+      const noteEl = document.getElementById('ai-estimation-note');
+      if (noteEl) {
+        noteEl.textContent = res.data.note || "Nilai merupakan estimasi Gemini AI. Silakan periksa dan koreksi sebelum disimpan.";
+      }
       
       renderEditableAICards();
-      document.getElementById('ai-result-section').classList.remove('hidden');
+      const resultSec = document.getElementById('ai-result-section');
+      if (resultSec) resultSec.classList.remove('hidden');
       App.showToast("Estimasi AI berhasil diperoleh!", "success");
     } else {
       App.showToast(res.message || "Gagal menganalisis makanan dengan Gemini.", "error");
@@ -169,6 +186,8 @@ const FoodModule = (() => {
 
   function renderEditableAICards() {
     const container = document.getElementById('ai-items-container');
+    if (!container) return;
+
     if (pendingAIItems.length === 0) {
       container.innerHTML = '<p class="text-muted text-center">Semua item telah dihapus. Tambahkan baris baru jika diperlukan.</p>';
       updateAITotalSummary();
@@ -239,8 +258,8 @@ const FoodModule = (() => {
   }
 
   function addEmptyItemRow() {
-    const mealDate = document.getElementById('input-meal-date').value || new Date().toISOString().split('T')[0];
-    const mealTime = document.getElementById('input-meal-time').value || new Date().toTimeString().slice(0, 5);
+    const mealDate = document.getElementById('input-meal-date')?.value || new Date().toISOString().split('T')[0];
+    const mealTime = document.getElementById('input-meal-time')?.value || new Date().toTimeString().slice(0, 5);
 
     pendingAIItems.push({
       tempId: 'temp_' + Date.now(),
@@ -268,17 +287,24 @@ const FoodModule = (() => {
       totFat += Number(i.fat || 0);
     });
 
-    document.getElementById('ai-sum-calories').textContent = totCal;
-    document.getElementById('ai-sum-protein').textContent = totPro;
-    document.getElementById('ai-sum-carbs').textContent = totCarbs;
-    document.getElementById('ai-sum-fat').textContent = totFat;
+    const sumCal = document.getElementById('ai-sum-calories');
+    const sumPro = document.getElementById('ai-sum-protein');
+    const sumCarbs = document.getElementById('ai-sum-carbs');
+    const sumFat = document.getElementById('ai-sum-fat');
+
+    if (sumCal) sumCal.textContent = totCal;
+    if (sumPro) sumPro.textContent = totPro;
+    if (sumCarbs) sumCarbs.textContent = totCarbs;
+    if (sumFat) sumFat.textContent = totFat;
   }
 
   function cancelAIResult() {
     pendingAIItems = [];
     removePhoto();
-    document.getElementById('ai-result-section').classList.add('hidden');
-    document.getElementById('ai-food-input').value = '';
+    const resultSec = document.getElementById('ai-result-section');
+    const inputArea = document.getElementById('ai-food-input');
+    if (resultSec) resultSec.classList.add('hidden');
+    if (inputArea) inputArea.value = '';
   }
 
   async function saveConfirmedItems() {
@@ -352,7 +378,7 @@ const FoodModule = (() => {
   }
 
   function filterHistoryByDate() {
-    const selectedDate = document.getElementById('filter-history-date').value;
+    const selectedDate = document.getElementById('filter-history-date')?.value;
     const dateStrEl = document.getElementById('history-selected-date-str');
     const container = document.getElementById('history-items-list');
 

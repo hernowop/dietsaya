@@ -148,10 +148,10 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
 
   // Daftar model resmi Google Gemini yang aktif & stabil
   const candidateModels = [
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-8b',
     'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash-8b'
+    'gemini-2.0-flash'
   ];
 
   const fullPrompt = `Kamu adalah AI Nutritionist & Dietitian profesional untuk aplikasi pencatat diet di Indonesia.

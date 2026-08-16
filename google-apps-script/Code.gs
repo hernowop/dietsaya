@@ -147,8 +147,8 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
   const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties.');
 
-  const modelName = 'gemini-2.5-flash';
-  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + encodeURIComponent(apiKey);
+  // Daftar model resmi Google Gemini yang aktif dan stabil
+  const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
 
   const systemInstruction = `Kamu adalah AI Nutritionist & Dietitian profesional untuk aplikasi pencatat diet di Indonesia.
 Tugasmu adalah menganalisis foto makanan dan/atau teks makanan/minuman yang dikonsumsi pengguna dan memperkirakan rincian nutrisinya secara akurat.
@@ -229,32 +229,46 @@ ATURAN PENTING:
     }
   };
 
-  const response = UrlFetchApp.fetch(endpoint, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
+  let lastError = null;
+  for (let m = 0; m < candidateModels.length; m++) {
+    const model = candidateModels[m];
+    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(apiKey);
+    
+    try {
+      const response = UrlFetchApp.fetch(endpoint, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
 
-  if (response.getResponseCode() !== 200) {
-    throw new Error('Gemini API Error (' + response.getResponseCode() + '): ' + response.getContentText());
+      if (response.getResponseCode() === 200) {
+        const resJson = JSON.parse(response.getContentText());
+        const rawText = resJson.candidates[0].content.parts[0].text;
+        const parsedData = JSON.parse(rawText);
+
+        // Sematkan tanggal & waktu ke setiap item
+        const today = mealDate || Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
+        const nowTime = mealTime || Utilities.formatDate(new Date(), 'GMT+7', 'HH:mm');
+
+        parsedData.items.forEach(item => {
+          item.date = today;
+          item.time = nowTime;
+          item.source = imageBase64 ? 'gemini_vision' : 'gemini_text';
+        });
+
+        return parsedData;
+      } else {
+        lastError = new Error('Gemini API (' + model + ') Error ' + response.getResponseCode() + ': ' + response.getContentText());
+        console.warn('Model ' + model + ' returned ' + response.getResponseCode() + ': ' + response.getContentText());
+      }
+    } catch (e) {
+      lastError = e;
+      console.warn('Fetch error with model ' + model + ': ' + e.message);
+    }
   }
 
-  const resJson = JSON.parse(response.getContentText());
-  const rawText = resJson.candidates[0].content.parts[0].text;
-  const parsedData = JSON.parse(rawText);
-
-  // Sematkan tanggal & waktu ke setiap item
-  const today = mealDate || Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
-  const nowTime = mealTime || Utilities.formatDate(new Date(), 'GMT+7', 'HH:mm');
-
-  parsedData.items.forEach(item => {
-    item.date = today;
-    item.time = nowTime;
-    item.source = imageBase64 ? 'gemini_vision' : 'gemini_text';
-  });
-
-  return parsedData;
+  throw lastError || new Error('Gagal menghubungi Gemini API dengan seluruh model yang tersedia.');
 }
 
 function getSpreadsheet() {

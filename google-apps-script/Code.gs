@@ -46,6 +46,9 @@ function handleRequest(e, method) {
       case 'getDashboardData':
         result = getDashboardData(user);
         break;
+      case 'getSpreadsheetUrl':
+        result = { spreadsheetUrl: getSpreadsheet().getUrl() };
+        break;
       case 'analyzeFood':
         result = analyzeFoodWithGemini(params.foodText, params.imageBase64, params.imageMimeType, params.date, params.time);
         break;
@@ -464,6 +467,7 @@ function getDashboardData(user) {
   const settings = getUserSettings(user);
   const foodLogs = getFoodLogs(user);
   const weightLogs = getWeightLogs(user);
+  const ss = getSpreadsheet();
 
   const todayStr = Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
   const todayLogs = foodLogs.filter(f => f.date === todayStr);
@@ -495,6 +499,7 @@ function getDashboardData(user) {
   return {
     user: user,
     settings: settings,
+    spreadsheetUrl: ss ? ss.getUrl() : 'https://drive.google.com',
     dashboard: {
       settings: settings,
       todayLogs: todayLogs,

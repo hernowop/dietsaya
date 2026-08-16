@@ -11,6 +11,12 @@ const App = (() => {
    * Inisialisasi saat aplikasi pertama kali dimuat
    */
   function init() {
+    // Restore saved spreadsheet URL if available
+    const savedSheetUrl = localStorage.getItem('diet_spreadsheet_url');
+    if (savedSheetUrl) {
+      updateSpreadsheetLink(savedSheetUrl);
+    }
+
     // Inisialisasi sub-modul
     FoodModule.init();
     WeightModule.init();
@@ -38,6 +44,15 @@ const App = (() => {
         refreshAllData().catch(e => console.log('Visibility sync:', e));
       }
     });
+  }
+
+  function updateSpreadsheetLink(url) {
+    if (!url) return;
+    localStorage.setItem('diet_spreadsheet_url', url);
+    const btn = document.getElementById('btn-open-spreadsheet');
+    if (btn) {
+      btn.href = url;
+    }
   }
 
   /**
@@ -83,6 +98,9 @@ const App = (() => {
   function initAppData(initData) {
     if (!initData) return;
 
+    if (initData.spreadsheetUrl) {
+      updateSpreadsheetLink(initData.spreadsheetUrl);
+    }
     if (initData.dashboard) {
       DashboardModule.render(initData.dashboard);
     }
@@ -106,9 +124,18 @@ const App = (() => {
     try {
       const res = await Api.request('getDashboardData', {}, 'POST');
       if (res.success && res.data) {
-        if (res.data.dashboard) DashboardModule.render(res.data.dashboard);
-        if (res.data.foodLogs) FoodModule.setFoodLogs(res.data.foodLogs);
-        if (res.data.weightLogs) WeightModule.setWeightLogs(res.data.weightLogs);
+        if (res.data.spreadsheetUrl) {
+          updateSpreadsheetLink(res.data.spreadsheetUrl);
+        }
+        if (res.data.dashboard) {
+          DashboardModule.render(res.data.dashboard);
+        }
+        if (res.data.foodLogs) {
+          FoodModule.setFoodLogs(res.data.foodLogs);
+        }
+        if (res.data.weightLogs) {
+          WeightModule.setWeightLogs(res.data.weightLogs);
+        }
         return true;
       } else {
         console.warn('[Sync Warning]:', res.message);
@@ -189,6 +216,7 @@ const App = (() => {
     navigate,
     initAppData,
     refreshAllData,
+    updateSpreadsheetLink,
     handleSaveSettings,
     showLoading,
     hideLoading,

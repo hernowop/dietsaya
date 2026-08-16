@@ -7,7 +7,7 @@ const FoodModule = (() => {
   let allFoodLogs = [];
   let currentImageBase64 = null;
   let currentImageMimeType = null;
-  let activeInputMode = 'ai'; // 'ai' or 'manual'
+  let activeInputMode = 'ai';
 
   function init() {
     const today = new Date().toISOString().split('T')[0];
@@ -15,14 +15,12 @@ const FoodModule = (() => {
 
     const dateInput = document.getElementById('input-meal-date');
     const timeInput = document.getElementById('input-meal-time');
-    const manualDate = document.getElementById('manual-meal-date');
-    const manualTime = document.getElementById('manual-meal-time');
+
     const filterHistInput = document.getElementById('filter-history-date');
 
     if (dateInput) dateInput.value = today;
     if (timeInput) timeInput.value = nowTime;
-    if (manualDate) manualDate.value = today;
-    if (manualTime) manualTime.value = nowTime;
+
     if (filterHistInput) filterHistInput.value = today;
   }
 

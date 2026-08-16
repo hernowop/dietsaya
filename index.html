@@ -252,23 +252,13 @@
         </div>
       </section>
 
-      <!-- ================= TAB 2: INPUT MAKANAN (AI & MANUAL) ================= -->
+      <!-- ================= TAB 2: INPUT MAKANAN (AI) ================= -->
       <section id="view-makan" class="app-view">
         <div class="view-header">
           <div>
-            <h2 class="view-title">Catat Makanan</h2>
-            <p class="view-subtitle">Pilih analisis otomatis dengan AI atau input nutrisi secara manual.</p>
+            <h2 class="view-title">Catat Makanan AI</h2>
+            <p class="view-subtitle">Foto atau ketik nama makanan, AI Gemini akan otomatis menghitung kalori & nutrisinya.</p>
           </div>
-        </div>
-
-        <!-- Mode Toggle Switcher -->
-        <div class="input-mode-switcher">
-          <button type="button" id="btn-mode-ai" class="mode-btn active" onclick="FoodModule.switchMode('ai')">
-            <span>✨ Analisis AI (Foto/Teks)</span>
-          </button>
-          <button type="button" id="btn-mode-manual" class="mode-btn" onclick="FoodModule.switchMode('manual')">
-            <span>✏️ Input Manual</span>
-          </button>
         </div>
 
         <!-- AI Text Box Area -->
@@ -280,14 +270,14 @@
             <input type="file" id="ai-food-gallery-input" accept="image/*" class="hidden" onchange="FoodModule.handleImageSelected(event)">
 
             <div id="photo-upload-placeholder" class="photo-upload-placeholder">
-              <div class="photo-icon">📷</div>
+              <div class="photo-icon">📸</div>
               <div class="photo-text">
-                <strong>Unggah Foto Makanan</strong>
+                <strong>Unggah / Ambil Foto Makanan</strong>
                 <span>AI Gemini akan otomatis menghitung kalori & makronutrisinya</span>
               </div>
               <div class="photo-action-buttons">
                 <button type="button" class="btn-photo-action" onclick="event.stopPropagation(); document.getElementById('ai-food-camera-input').click()">
-                  <span>📸 Buka Kamera</span>
+                  <span>📷 Buka Kamera</span>
                 </button>
                 <button type="button" class="btn-photo-action btn-photo-gallery" onclick="event.stopPropagation(); document.getElementById('ai-food-gallery-input').click()">
                   <span>🖼️ Ambil dari Galeri</span>
@@ -301,12 +291,12 @@
             </div>
           </div>
 
-          <label for="ai-food-input" class="form-label mt-3">Catatan / Keterangan Teks Tambahan (Opsional):</label>
+          <label for="ai-food-input" class="form-label mt-3">Catatan / Keterangan Teks Makanan:</label>
           <textarea 
             id="ai-food-input" 
             class="form-textarea" 
             rows="4" 
-            placeholder="Contoh: Nasi putih 200 gram, ayam goreng 1 potong dada, tempe goreng 2 biji, dan es teh manis 1 gelas"></textarea>
+            placeholder="Contoh: Nasi putih 200 gram, ayam bakar 1 potong dada, tempe orek 2 sendok, dan es teh tawar"></textarea>
           
           <!-- Sample Chips for quick test -->
           <div class="quick-chips">
@@ -331,54 +321,6 @@
           <button type="button" class="btn btn-primary btn-block btn-lg mt-3" onclick="FoodModule.analyzeWithAI()">
             <span>✨ Analisis Kalori dengan AI</span>
           </button>
-        </div>
-
-        <!-- Manual Input Section -->
-        <div id="manual-input-section" class="card hidden">
-          <h3 class="card-title">Input Nutrisi Manual</h3>
-          <form id="form-manual-food" onsubmit="FoodModule.handleSaveManual(event)">
-            <div class="form-group">
-              <label class="form-label-sub" for="manual-food-name">Nama Makanan / Minuman</label>
-              <input type="text" id="manual-food-name" class="form-input" placeholder="Misal: Dada Ayam Panggang" required>
-            </div>
-            <div class="form-group mt-2">
-              <label class="form-label-sub" for="manual-food-portion">Porsi</label>
-              <input type="text" id="manual-food-portion" class="form-input" placeholder="Misal: 1 porsi / 150 gram" required>
-            </div>
-            <div class="form-row-2 mt-2">
-              <div class="form-group">
-                <label class="form-label-sub" for="manual-food-cal">Kalori (kkal)</label>
-                <input type="number" id="manual-food-cal" class="form-input" min="0" placeholder="0" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label-sub" for="manual-food-pro">Protein (g)</label>
-                <input type="number" id="manual-food-pro" class="form-input" min="0" placeholder="0" required>
-              </div>
-            </div>
-            <div class="form-row-2 mt-2">
-              <div class="form-group">
-                <label class="form-label-sub" for="manual-food-carbs">Karbohidrat (g)</label>
-                <input type="number" id="manual-food-carbs" class="form-input" min="0" placeholder="0" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label-sub" for="manual-food-fat">Lemak (g)</label>
-                <input type="number" id="manual-food-fat" class="form-input" min="0" placeholder="0" required>
-              </div>
-            </div>
-            <div class="form-row-2 mt-2">
-              <div class="form-group">
-                <label class="form-label-sub" for="manual-meal-date">Tanggal</label>
-                <input type="date" id="manual-meal-date" class="form-input" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label-sub" for="manual-meal-time">Waktu</label>
-                <input type="time" id="manual-meal-time" class="form-input" required>
-              </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block mt-3">
-              <span>💾 Simpan Makanan ke Catatan</span>
-            </button>
-          </form>
         </div>
 
         <!-- AI Analysis Results & Confirmation Area -->

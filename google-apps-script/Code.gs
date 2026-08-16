@@ -150,7 +150,7 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
   const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties Google Apps Script.');
 
-  // Daftar model resmi Google Gemini yang paling stabil & berkuota tinggi
+  // Daftar model resmi Google Gemini yang aktif & berkuota tinggi
   const candidateModels = [
     'gemini-1.5-flash',
     'gemini-2.0-flash',
@@ -190,7 +190,7 @@ ATURAN PENTING:
     "fat": 8,
     "fiber": 2
   },
-  "note": "Estimasi kalori dan nutrisi makanan."
+  "note": "Estimasi kalori dan nutrisi dihitung langsung oleh Google Gemini AI."
 }`;
 
   const userParts = [];
@@ -261,15 +261,14 @@ ATURAN PENTING:
             return parsedData;
           }
         } else if (responseCode === 503 || responseCode === 429) {
-          // Lonjakan trafik sementara di Google Gemini -> Tunggu 1 detik lalu retry sekali
-          lastErrorMsg = 'Model ' + model + ' (' + responseCode + '): Server Google sedang sibuk.';
+          lastErrorMsg = 'Model ' + model + ' (' + responseCode + '): Antrean server padat.';
           if (attempt === 1) {
-            Utilities.sleep(1000);
+            Utilities.sleep(1200);
             continue;
           }
         } else {
           lastErrorMsg = 'Model ' + model + ' (' + responseCode + '): ' + responseText;
-          break; // Lanjut ke model berikutnya jika bukan 503
+          break;
         }
       } catch (e) {
         lastErrorMsg = 'Error ' + model + ': ' + e.message;
@@ -278,67 +277,8 @@ ATURAN PENTING:
     }
   }
 
-  // JIKA SEMUA MODEL GEMINI SIBUK: Gunakan Smart Nutrition Estimator Cerdas (Aplikasi Tidak Akan Pernah Error)
-  return fallbackSmartNutritionEstimator(foodText, today, nowTime);
-}
-
-/**
- * Smart Nutrition Fallback (Database Nutrisi Lokal Makanan Indonesia)
- */
-function fallbackSmartNutritionEstimator(foodText, today, nowTime) {
-  const text = (foodText || 'Makanan').trim();
-  const lower = text.toLowerCase();
-
-  let cal = 300, pro = 12, carbs = 40, fat = 10, fiber = 2;
-  let portion = "1 porsi";
-
-  if (lower.includes('nasi goreng') || lower.includes('naai goreng')) {
-    cal = 380; pro = 10; carbs = 55; fat = 14; fiber = 2;
-  } else if (lower.includes('ayam bakar') || lower.includes('dada ayam')) {
-    cal = 260; pro = 32; carbs = 5; fat = 12; fiber = 1;
-  } else if (lower.includes('ayam goreng')) {
-    cal = 320; pro = 24; carbs = 8; fat = 22; fiber = 1;
-  } else if (lower.includes('telur')) {
-    cal = 90; pro = 7; carbs = 1; fat = 6; fiber = 0; portion = "1 butir";
-  } else if (lower.includes('oat') || lower.includes('oatmeal')) {
-    cal = 180; pro = 6; carbs = 32; fat = 3; fiber = 5; portion = "1 mangkok";
-  } else if (lower.includes('gado') || lower.includes('pecel') || lower.includes('salad')) {
-    cal = 250; pro = 10; carbs = 28; fat = 11; fiber = 6;
-  } else if (lower.includes('roti')) {
-    cal = 140; pro = 4; carbs = 26; fat = 2; fiber = 2; portion = "2 lembar";
-  } else if (lower.includes('pisang') || lower.includes('apel') || lower.includes('buah')) {
-    cal = 95; pro = 1; carbs = 24; fat = 0; fiber = 3; portion = "1 buah";
-  } else if (lower.includes('tahu') || lower.includes('tempe')) {
-    cal = 160; pro = 14; carbs = 10; fat = 8; fiber = 4;
-  } else if (lower.includes('kopi') || lower.includes('teh')) {
-    cal = 45; pro = 1; carbs = 8; fat = 1; fiber = 0; portion = "1 cangkir";
-  }
-
-  return {
-    items: [
-      {
-        food_name: text.charAt(0).toUpperCase() + text.slice(1),
-        portion: portion,
-        calories: cal,
-        protein: pro,
-        carbs: carbs,
-        fat: fat,
-        fiber: fiber,
-        confidence: "medium",
-        date: today,
-        time: nowTime,
-        source: 'smart_fallback'
-      }
-    ],
-    total: {
-      calories: cal,
-      protein: pro,
-      carbs: carbs,
-      fat: fat,
-      fiber: fiber
-    },
-    note: "Estimasi cerdas otomatis (Server AI Google sedang sibuk, Anda dapat menyesuaikan angkanya jika perlu)."
-  };
+  // Jika semua model gagal, tampilkan pesan murni tanpa estimasi lokal buatan
+  throw new Error('Server Google Gemini AI sedang mengalami lonjakan trafik (' + lastErrorMsg + '). Silakan coba klik Analisis kembali dalam beberapa saat.');
 }
 
 /**

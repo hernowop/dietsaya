@@ -7,7 +7,7 @@ const FoodModule = (() => {
   let allFoodLogs = [];
   let currentImageBase64 = null;
   let currentImageMimeType = null;
-  let activeInputMode = 'ai';
+  let activeInputMode = 'ai'; // 'ai' or 'manual'
 
   function init() {
     const today = new Date().toISOString().split('T')[0];

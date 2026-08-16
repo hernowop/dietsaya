@@ -150,16 +150,15 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
   const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties Google Apps Script.');
 
-  // Daftar model resmi Google Gemini yang aktif & berkuota tinggi
+  // Daftar model resmi Google Gemini yang aktif & stabil
   const candidateModels = [
     'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
     'gemini-2.0-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-pro'
+    'gemini-1.5-flash-8b'
   ];
 
-  const systemInstruction = `Kamu adalah AI Nutritionist & Dietitian profesional untuk aplikasi pencatat diet di Indonesia.
+  const fullPrompt = `Kamu adalah AI Nutritionist & Dietitian profesional untuk aplikasi pencatat diet di Indonesia.
 Tugasmu adalah menganalisis foto makanan dan/atau teks makanan/minuman yang dikonsumsi pengguna dan memperkirakan rincian nutrisinya secara akurat.
 
 ATURAN PENTING:
@@ -168,8 +167,8 @@ ATURAN PENTING:
 3. Semua nilai makronutrisi HARUS berupa bilangan bulat (integer non-negatif).
 4. Berikan tingkat keyakinan (confidence): "high", "medium", atau "low".
 5. Hitung total seluruh nutrisi di object "total".
-6. Berikan kalimat catatan (note) bahwa nilai merupakan estimasi.
-7. JANGAN menambahkan format markdown. Keluarkan HANYA string JSON murni yang valid sesuai format:
+6. Berikan catatan ringkas (note) dalam bahasa Indonesia.
+7. JANGAN menambahkan format markdown codeblock. Keluarkan HANYA string JSON valid murni sesuai format:
 {
   "items": [
     {
@@ -190,12 +189,13 @@ ATURAN PENTING:
     "fat": 8,
     "fiber": 2
   },
-  "note": "Estimasi kalori dan nutrisi dihitung langsung oleh Google Gemini AI."
-}`;
+  "note": "Estimasi nutrisi dihitung oleh Google Gemini AI."
+}
+
+Makanan yang harus dianalisis: ${foodText || "Identifikasi dan analisis makanan pada foto terlampir"}`;
 
   const userParts = [];
-  let promptText = foodText ? "Analisis makanan ini: " + foodText : "Tolong identifikasi dan analisis seluruh makanan pada foto ini:";
-  userParts.push({ text: promptText });
+  userParts.push({ text: fullPrompt });
 
   if (imageBase64) {
     userParts.push({
@@ -206,20 +206,17 @@ ATURAN PENTING:
     });
   }
 
+  // REST API Payload yang 100% kompatibel dengan Gemini API v1beta (camelCase generationConfig)
   const payload = {
     contents: [
       {
-        role: "user",
         parts: userParts
       }
     ],
-    systemInstruction: {
-      parts: [{ text: systemInstruction }]
-    },
     generationConfig: {
       temperature: 0.2,
-      max_output_tokens: 800,
-      response_mime_type: "application/json"
+      maxOutputTokens: 800,
+      responseMimeType: "application/json"
     }
   };
 
@@ -277,8 +274,7 @@ ATURAN PENTING:
     }
   }
 
-  // Jika semua model gagal, tampilkan pesan murni tanpa estimasi lokal buatan
-  throw new Error('Server Google Gemini AI sedang mengalami lonjakan trafik (' + lastErrorMsg + '). Silakan coba klik Analisis kembali dalam beberapa saat.');
+  throw new Error('Gagal menganalisis dengan Gemini AI (' + lastErrorMsg + '). Silakan coba tekan tombol Analisis kembali.');
 }
 
 /**
@@ -470,7 +466,7 @@ Keluarkan HANYA dalam format JSON murni tanpa format markdown codeblock:
 
     const payload = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.4, max_output_tokens: 350, response_mime_type: "application/json" }
+      generationConfig: { temperature: 0.4, maxOutputTokens: 350, responseMimeType: "application/json" }
     };
 
     for (let i = 0; i < candidateModels.length; i++) {

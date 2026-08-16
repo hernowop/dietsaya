@@ -139,7 +139,7 @@ function verifyGoogleIdToken(idToken, userEmail, userId) {
 }
 
 /**
- * Analisis Teks dan/atau Foto Makanan dengan Gemini Multimodal Vision API
+ * Analisis Teks dan/atau Foto Makanan dengan Gemini Multimodal Vision API (Flash / Fast Models)
  */
 function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, mealTime) {
   if ((!foodText || foodText.trim() === '') && !imageBase64) {
@@ -148,10 +148,17 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
 
   const scriptProperties = PropertiesService.getScriptProperties();
   const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
-  if (!apiKey) throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties.');
+  if (!apiKey) throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties Google Apps Script.');
 
-  // Daftar model resmi Google Gemini yang aktif dan stabil
-  const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  // Daftar model Flash resmi Google Gemini yang aktif & super cepat
+  const candidateModels = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-8b',
+    'gemini-2.5-flash',
+    'gemini-3.7-flash'
+  ];
 
   const systemInstruction = `Kamu adalah AI Nutritionist & Dietitian profesional untuk aplikasi pencatat diet di Indonesia.
 Tugasmu adalah menganalisis foto makanan dan/atau teks makanan/minuman yang dikonsumsi pengguna dan memperkirakan rincian nutrisinya secara akurat.
@@ -163,15 +170,34 @@ ATURAN PENTING:
 4. Berikan tingkat keyakinan (confidence): "high", "medium", atau "low".
 5. Hitung total seluruh nutrisi di object "total".
 6. Berikan kalimat catatan (note) bahwa nilai merupakan estimasi.
-7. JANGAN menambahkan format markdown. Keluarkan HANYA string JSON murni yang valid.`;
+7. JANGAN menambahkan format markdown. Keluarkan HANYA string JSON murni yang valid sesuai format:
+{
+  "items": [
+    {
+      "food_name": "Nama Makanan",
+      "portion": "1 porsi",
+      "calories": 250,
+      "protein": 15,
+      "carbs": 30,
+      "fat": 8,
+      "fiber": 2,
+      "confidence": "high"
+    }
+  ],
+  "total": {
+    "calories": 250,
+    "protein": 15,
+    "carbs": 30,
+    "fat": 8,
+    "fiber": 2
+  },
+  "note": "Estimasi kalori dan nutrisi makanan."
+}`;
 
   const userParts = [];
-
-  // Jika ada teks
   let promptText = foodText ? "Analisis makanan ini: " + foodText : "Tolong identifikasi dan analisis seluruh makanan pada foto ini:";
   userParts.push({ text: promptText });
 
-  // Jika ada foto
   if (imageBase64) {
     userParts.push({
       inline_data: {
@@ -193,50 +219,15 @@ ATURAN PENTING:
     },
     generationConfig: {
       temperature: 0.2,
-      response_mime_type: "application/json",
-      response_schema: {
-        type: "OBJECT",
-        properties: {
-          items: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                food_name: { type: "STRING" },
-                portion: { type: "STRING" },
-                calories: { type: "INTEGER" },
-                protein: { type: "INTEGER" },
-                carbs: { type: "INTEGER" },
-                fat: { type: "INTEGER" },
-                fiber: { type: "INTEGER" },
-                confidence: { type: "STRING" }
-              },
-              required: ["food_name", "portion", "calories", "protein", "carbs", "fat"]
-            }
-          },
-          total: {
-            type: "OBJECT",
-            properties: {
-              calories: { type: "INTEGER" },
-              protein: { type: "INTEGER" },
-              carbs: { type: "INTEGER" },
-              fat: { type: "INTEGER" },
-              fiber: { type: "INTEGER" }
-            },
-            required: ["calories", "protein", "carbs", "fat"]
-          },
-          note: { type: "STRING" }
-        },
-        required: ["items", "total"]
-      }
+      response_mime_type: "application/json"
     }
   };
 
-  let lastError = null;
+  let lastErrorMsg = '';
   for (let m = 0; m < candidateModels.length; m++) {
     const model = candidateModels[m];
     const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(apiKey);
-    
+
     try {
       const response = UrlFetchApp.fetch(endpoint, {
         method: 'post',
@@ -245,33 +236,42 @@ ATURAN PENTING:
         muteHttpExceptions: true
       });
 
-      if (response.getResponseCode() === 200) {
-        const resJson = JSON.parse(response.getContentText());
-        const rawText = resJson.candidates[0].content.parts[0].text;
-        const parsedData = JSON.parse(rawText);
+      const responseCode = response.getResponseCode();
+      const responseText = response.getContentText();
 
-        // Sematkan tanggal & waktu ke setiap item
-        const today = mealDate || Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
-        const nowTime = mealTime || Utilities.formatDate(new Date(), 'GMT+7', 'HH:mm');
+      if (responseCode === 200) {
+        const resJson = JSON.parse(responseText);
+        if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
+          let rawText = resJson.candidates[0].content.parts[0].text;
+          
+          // Bersihkan markdown backticks jika ada
+          rawText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+          const parsedData = JSON.parse(rawText);
 
-        parsedData.items.forEach(item => {
-          item.date = today;
-          item.time = nowTime;
-          item.source = imageBase64 ? 'gemini_vision' : 'gemini_text';
-        });
+          const today = mealDate || Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
+          const nowTime = mealTime || Utilities.formatDate(new Date(), 'GMT+7', 'HH:mm');
 
-        return parsedData;
+          if (parsedData.items && Array.isArray(parsedData.items)) {
+            parsedData.items.forEach(item => {
+              item.date = today;
+              item.time = nowTime;
+              item.source = imageBase64 ? 'gemini_vision' : 'gemini_text';
+            });
+          }
+
+          return parsedData;
+        }
       } else {
-        lastError = new Error('Gemini API (' + model + ') Error ' + response.getResponseCode() + ': ' + response.getContentText());
-        console.warn('Model ' + model + ' returned ' + response.getResponseCode() + ': ' + response.getContentText());
+        lastErrorMsg = 'Model ' + model + ' (' + responseCode + '): ' + responseText;
+        console.warn('Try next model. Error:', lastErrorMsg);
       }
     } catch (e) {
-      lastError = e;
-      console.warn('Fetch error with model ' + model + ': ' + e.message);
+      lastErrorMsg = 'Error ' + model + ': ' + e.message;
+      console.warn(lastErrorMsg);
     }
   }
 
-  throw lastError || new Error('Gagal menghubungi Gemini API dengan seluruh model yang tersedia.');
+  throw new Error('Gagal menganalisis dengan Gemini API: ' + lastErrorMsg);
 }
 
 function getSpreadsheet() {

@@ -318,6 +318,9 @@ const FoodModule = (() => {
     App.hideLoading();
 
     if (res.success) {
+      if (res.data && res.data.aiAdvice) {
+        DashboardModule.setAiAdvice(res.data.aiAdvice);
+      }
       App.showToast("Catatan makanan berhasil disimpan!", "success");
       cancelAIResult();
       await App.refreshAllData();
@@ -356,6 +359,9 @@ const FoodModule = (() => {
     App.hideLoading();
 
     if (res.success) {
+      if (res.data && res.data.aiAdvice) {
+        DashboardModule.setAiAdvice(res.data.aiAdvice);
+      }
       App.showToast("Makanan berhasil dicatat!", "success");
       // Reset form
       document.getElementById('manual-food-name').value = '';

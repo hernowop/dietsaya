@@ -1,6 +1,7 @@
-﻿/**
+/**
  * DietSaya - Dashboard Module
- * Mengelola kalkulasi ringkasan harian, persentase nutrisi, dan daftar makanan hari ini.
+ * Mengelola kalkulasi ringkasan harian, persentase nutrisi, daftar makanan hari ini,
+ * dan kartu Saran AI Nutrition Coach (Live & Real-time Update).
  */
 
 const DashboardModule = (() => {
@@ -18,8 +19,11 @@ const DashboardModule = (() => {
       avgProtein: 0,
       lastWeight: null,
       weightChange: 0
-    }
+    },
+    latestAiAdvice: null
   };
+
+  let cachedAiAdvice = null;
 
   /**
    * Format tanggal ke Bahasa Indonesia (Contoh: Sabtu, 15 Agustus 2026)
@@ -30,11 +34,41 @@ const DashboardModule = (() => {
   }
 
   /**
+   * Set saran AI terkini (misal dari respons saveFood)
+   */
+  function setAiAdvice(advice) {
+    if (advice) {
+      cachedAiAdvice = advice;
+      try {
+        localStorage.setItem('dietsaya_latest_ai_advice', JSON.stringify(advice));
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * Mengambil saran AI tersimpan (jika ada)
+   */
+  function getCachedAiAdvice() {
+    if (cachedAiAdvice) return cachedAiAdvice;
+    try {
+      const stored = localStorage.getItem('dietsaya_latest_ai_advice');
+      if (stored) {
+        cachedAiAdvice = JSON.parse(stored);
+        return cachedAiAdvice;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /**
    * Perbarui tampilan seluruh dashboard
    */
   function render(data) {
     if (data) {
       dashboardData = { ...dashboardData, ...data };
+      if (data.latestAiAdvice) {
+        setAiAdvice(data.latestAiAdvice);
+      }
     }
 
     // Set Tanggal Hari Ini
@@ -97,6 +131,9 @@ const DashboardModule = (() => {
     updateMacroUI('carbs', totCarbs, Number(settings.carbs_target || 250));
     updateMacroUI('fat', totFat, Number(settings.fat_target || 65));
 
+    // Render Kartu AI Nutrition Coach
+    renderAiCard(logs, totCal, totPro, totCarbs, totFat, targetCal, Number(settings.protein_target || 120));
+
     // Update 7-Day Stats
     const s7 = dashboardData.sevenDaysSummary || {};
     const avgCalEl = document.getElementById('stat-7d-avg-cal');
@@ -114,6 +151,103 @@ const DashboardModule = (() => {
 
     // Update Today's Food List
     renderTodayFoodList(logs);
+  }
+
+  /**
+   * Render Tampilan Kartu AI Coach (Santai, Hangat & Penuh Perhatian)
+   */
+  function renderAiCard(logs, totCal, totPro, totCarbs, totFat, targetCal, targetPro) {
+    const cardEl = document.getElementById('dashboard-ai-card');
+    if (!cardEl) return;
+
+    const badgeEl = document.getElementById('ai-coach-badge');
+    const commentEl = document.getElementById('ai-coach-comment');
+    const nextMealEl = document.getElementById('ai-coach-next-meal');
+    const tipEl = document.getElementById('ai-coach-tip');
+
+    const advice = getCachedAiAdvice();
+
+    // Jika ada respons saran AI langsung dari server Gemini
+    if (advice && logs.length > 0) {
+      if (badgeEl) {
+        badgeEl.textContent = advice.statusBadge || '✨ On Track Semangat!';
+        badgeEl.className = 'badge-status ' + (advice.statusType ? `badge-${advice.statusType}` : 'badge-success');
+      }
+      if (commentEl) commentEl.textContent = `"${advice.komentar || 'Tetap semangat menjaga pola makan sehat ya sayang! 🥰'}"`;
+      if (nextMealEl) nextMealEl.textContent = advice.saranMenuBerikutnya || 'Pilih makanan kaya serat dan protein untuk jam makan berikutnya.';
+      if (tipEl) tipEl.textContent = advice.tipsPerhatian || 'Jangan lupa cukupi air putih minimal 2 liter dan selalu tersenyum bahagia hari ini! 💕';
+      return;
+    }
+
+    // Generator AI Lokal Cerdas & Penuh Perhatian (Jika tanpa koneksi / baru mulai)
+    const remainingCal = targetCal - totCal;
+    const nowHour = new Date().getHours();
+
+    let badge = '✨ On Track Semangat!';
+    let badgeType = 'success';
+    let comment = '';
+    let nextMeal = '';
+    let tip = 'Jangan lupa cukupi air putih minimal 2 liter dan selalu bahagia hari ini! 💕';
+
+    if (logs.length === 0) {
+      badge = '🌅 Awali Harimu!';
+      badgeType = 'info';
+      if (nowHour < 11) {
+        comment = 'Selamat pagi sayang! Belum ada makanan yang dicatat nih. Yuk awali harimu dengan sarapan bergizi kaya protein & serat biar tetap berenergi dan bugar seharian! 🥰';
+        nextMeal = 'Ide sarapan: Telur rebus/dadar + roti gandum atau oatmeal buah pisang/berry segar.';
+        tip = 'Segelas air putih hangat di pagi hari sangat bagus untuk metabolisme tubuh!';
+      } else if (nowHour < 16) {
+        comment = 'Selamat siang cintaa! Belum ada catatan makan hari ini. Jangan sampai telat makan siang yaa, tubuh butuh asupan nutrisi seimbang! 💕';
+        nextMeal = 'Ide makan siang: Nasi secukupnya + ayam/ikan bakar + sayur bening bayam atau tumis brokoli.';
+        tip = 'Makan perlahan dan nikmati setiap suapan agar pencernaan lebih nyaman dan kenyang optimal.';
+      } else {
+        comment = 'Halo sayang! Belum ada catatan makan hari ini nih. Yuk catat makananmu agar progres nutrisi tetap terpantau dengan rapi dan teratur! 💖';
+        nextMeal = 'Pilih menu makan malam yang ringan dan nyaman di perut seperti sup tahu sayuran atau salad segar.';
+        tip = 'Usahakan tidak makan porsi berat terlalu dekat dengan waktu tidur yaa.';
+      }
+    } else {
+      const lastFood = logs[0];
+      const lastFoodName = lastFood.food_name || 'makananmu';
+
+      if (totCal > targetCal) {
+        badge = '⚠️ Target Kalori Tercapai';
+        badgeType = 'warning';
+        comment = `Hari ini asupan sudah mencapai ${totCal.toLocaleString('id-ID')} kkal (target ${targetCal.toLocaleString('id-ID')} kkal). Kamu hebat dan jujur banget selalu mencatatnya sayang! Jangan khawatir, tetap rileks dan santai yaa 💪`;
+        nextMeal = 'Untuk waktu berikutnya, cukup minum air mineral dingin / infused water lemon segar atau teh chamomile tanpa gula.';
+        tip = 'Bisa luangkan waktu 15-20 menit jalan santai malam ini untuk bantu relaksasi dan pencernaan 🥰';
+      } else if (remainingCal <= 350) {
+        badge = '🔥 Kuota Pas Mantap!';
+        badgeType = 'success';
+        comment = `Pencatatan "${lastFoodName}" sangat pas! Total asupan sekarang ${totCal.toLocaleString('id-ID')} kkal, sisa kuota tinggal ${remainingCal.toLocaleString('id-ID')} kkal. Kamu konsisten dan keren banget sayang! ✨`;
+        if (totPro < targetPro * 0.7) {
+          nextMeal = `Asupan protein hari ini (${totPro}g) masih bisa ditambah sedikit. Pilihan pas: greek yogurt tawar, putih telur, atau segelas susu kedelai.`;
+        } else {
+          nextMeal = 'Target nutrisi hari ini sudah sangat seimbang! Cukup lengkapi dengan air putih atau sepotong buah segar.';
+        }
+        tip = 'Istirahat dan tidur cukup 7-8 jam sangat mendukung proses regenerasi dan pembakaran tubuh!';
+      } else {
+        badge = '✨ On Track & Seimbang';
+        badgeType = 'success';
+        comment = `Keren sayang! Menu "${lastFoodName}" (${lastFood.calories || 0} kkal) tersimpan rapi. Sisa kuota masih leluasa ${remainingCal.toLocaleString('id-ID')} kkal. Pola makanmu tertata rapi sekali! 🌸`;
+        
+        if (nowHour < 12) {
+          nextMeal = 'Untuk makan siang nanti: karbohidrat kompleks (nasi/kentang), protein tinggi (ayam/ikan/telur), dan sayuran hijau segar.';
+        } else if (nowHour < 17) {
+          nextMeal = 'Untuk makan malam nanti: pas banget kalau pilih sup bening atau tumis sayur dengan tahu/tempe/daging rendah lemak.';
+        } else {
+          nextMeal = 'Masih ada kuota kalori yang cukup untuk dinikmati dengan makan malam lezat bernutrisi seimbang.';
+        }
+        tip = 'Pastikan asupan air putih sudah mencapai minimal 2 liter hari ini ya cintaa 🥰';
+      }
+    }
+
+    if (badgeEl) {
+      badgeEl.textContent = badge;
+      badgeEl.className = 'badge-status badge-' + badgeType;
+    }
+    if (commentEl) commentEl.textContent = `"${comment}"`;
+    if (nextMealEl) nextMealEl.textContent = nextMeal;
+    if (tipEl) tipEl.textContent = tip;
   }
 
   function updateMacroUI(type, current, target) {
@@ -180,6 +314,7 @@ const DashboardModule = (() => {
 
   return {
     render,
+    setAiAdvice,
     getData: () => dashboardData
   };
 })();

@@ -383,7 +383,129 @@ function saveFoodLogs(user, items) {
     now
   ]);
   sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-  return { savedCount: rows.length };
+
+  // Generate saran & umpan balik AI otomatis setelah menyimpan
+  let aiAdvice = null;
+  try {
+    aiAdvice = generateAIAdviceForSavedFood(user, items);
+  } catch (err) {
+    Logger.log('AI Advice error: ' + err.toString());
+  }
+
+  return { savedCount: rows.length, aiAdvice: aiAdvice };
+}
+
+/**
+ * Generate Rekomendasi & Komentar AI Otomatis (Santai, Hangat & Penuh Perhatian)
+ */
+function generateAIAdviceForSavedFood(user, newlyAddedItems) {
+  const settings = getUserSettings(user);
+  const foodLogs = getFoodLogs(user);
+  const todayStr = Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
+  const todayLogs = foodLogs.filter(f => f.date === todayStr);
+
+  let totCal = 0, totPro = 0, totCarbs = 0, totFat = 0;
+  todayLogs.forEach(f => {
+    totCal += (Number(f.calories) || 0);
+    totPro += (Number(f.protein) || 0);
+    totCarbs += (Number(f.carbs) || 0);
+    totFat += (Number(f.fat) || 0);
+  });
+
+  const targetCal = Number(settings.calorie_target || 2000);
+  const targetPro = Number(settings.protein_target || 120);
+  const sisaCal = targetCal - totCal;
+  const recentItemNames = newlyAddedItems.map(i => i.food_name || 'Makanan').join(', ');
+
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
+
+  if (apiKey) {
+    const candidateModels = [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-flash-8b',
+      'gemini-2.5-flash'
+    ];
+
+    const prompt = `Kamu adalah Personal Diet Coach & Nutritionist yang sangat hangat, santai, perhatian, penyayang dan suportif (didedikasikan khusus untuk istri tercinta, Ikaaa, dari suaminya Hernowo).
+Pengguna baru saja selesai mencatat menu makanannya: "${recentItemNames}".
+
+Data Nutrisi Hari Ini:
+- Target Kalori Harian: ${targetCal} kkal (Sisa kuota: ${sisaCal} kkal, Total dimakan: ${totCal} kkal)
+- Target Protein: ${targetPro}g (Total tercapai: ${totPro}g)
+- Karbohidrat: ${totCarbs}g, Lemak: ${totFat}g
+
+Tugasmu:
+1. Berikan apresiasi dan komentar santai serta manis terkait makanan yang baru dicatat.
+2. Berikan evaluasi singkat progres kalori & makro hari ini.
+3. Berikan saran konkret untuk menu makan selanjutnya (pagi/siang/malam/snack) agar nutrisi seimbang dan target tercapai tanpa beban.
+4. Berikan tips penuh perhatian yang menenangkan.
+
+Keluarkan HANYA dalam format JSON murni tanpa format markdown codeblock:
+{
+  "statusBadge": "✨ On Track Cantik! / 🔥 Semangat Sedikit Lagi / 🥗 Fokus Serat & Protein / ⚠️ Kuota Kalori Pas",
+  "statusType": "success / warning / info",
+  "komentar": "Komentar apresiatif dan penyemangat hangat untuk istri tersayang (1-2 kalimat).",
+  "saranMenuBerikutnya": "Rekomendasi menu spesifik yang lezat & sehat untuk jadwal makan selanjutnya.",
+  "tipsPerhatian": "1 tips penuh perhatian untuk kesehatan dan kebahagiaan hari ini."
+}`;
+
+    const payload = {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, response_mime_type: "application/json" }
+    };
+
+    for (let i = 0; i < candidateModels.length; i++) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${candidateModels[i]}:generateContent?key=${apiKey}`;
+        const resp = UrlFetchApp.fetch(url, {
+          method: 'post',
+          contentType: 'application/json',
+          payload: JSON.stringify(payload),
+          muteHttpExceptions: true
+        });
+
+        if (resp.getResponseCode() === 200) {
+          const json = JSON.parse(resp.getContentText());
+          if (json.candidates && json.candidates.length > 0) {
+            let raw = json.candidates[0].content.parts[0].text.trim();
+            if (raw.startsWith('```json')) raw = raw.replace(/^```json/, '').replace(/```$/, '').trim();
+            else if (raw.startsWith('```')) raw = raw.replace(/^```/, '').replace(/```$/, '').trim();
+            return JSON.parse(raw);
+          }
+        }
+      } catch (e) {
+        Logger.log('Model ' + candidateModels[i] + ' error: ' + e.toString());
+      }
+    }
+  }
+
+  // Fallback Lokal Cerdas
+  let badge = "✨ On Track Semangat!";
+  let badgeType = "success";
+  let komentar = `Menu "${recentItemNames}" berhasil dicatat ya sayang! Total asupan sekarang ${totCal} kkal dari target ${targetCal} kkal.`;
+  let saran = "Untuk makan selanjutnya, pastikan mencukupi kebutuhan sayuran dan protein tanpa lemak.";
+  
+  if (sisaCal < 0) {
+    badge = "⚠️ Target Kalori Tercapai";
+    badgeType = "warning";
+    komentar = `Hari ini asupan sudah ${totCal} kkal. Jangan khawatir yaa sayang, kamu sudah hebat dan jujur selalu mencatatnya! 💪`;
+    saran = "Cukup nikmati air putih dingin / infused water atau teh chamomile hangat malam ini.";
+  } else if (sisaCal <= 350) {
+    badge = "🔥 Kuota Pas Mantap!";
+    komentar = `Sisa kuota kalori hari ini tinggal ${sisaCal} kkal lagi sayang. Konsistenmu luar biasa! ✨`;
+    saran = "Pilih makanan ringan berserat tinggi seperti apel atau salad sayur segar tanpa dressing berlebih.";
+  }
+
+  return {
+    statusBadge: badge,
+    statusType: badgeType,
+    komentar: komentar,
+    saranMenuBerikutnya: saran,
+    tipsPerhatian: "Jangan lupa cukupi air putih minimal 2 liter dan selalu bahagia hari ini! 💕"
+  };
 }
 
 function getFoodLogs(user) {

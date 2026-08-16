@@ -11,9 +11,7 @@ function doGet(e) { return handleRequest(e, 'GET'); }
 function doPost(e) { return handleRequest(e, 'POST'); }
 
 function handleRequest(e, method) {
-  const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(15000);
 
     let params = {};
     if (method === 'POST') {
@@ -83,8 +81,6 @@ function handleRequest(e, method) {
     return jsonResponse({ success: true, data: result, message: 'Berhasil' });
   } catch (error) {
     return jsonResponse({ success: false, data: null, message: 'Server Error: ' + error.toString() });
-  } finally {
-    lock.releaseLock();
   }
 }
 

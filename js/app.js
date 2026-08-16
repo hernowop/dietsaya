@@ -40,8 +40,7 @@ const App = (() => {
     // Auto-refresh saat user kembali ke tab/aplikasi (visibility change)
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && AuthModule.getUser()) {
-        console.log("Tab aktif kembali, menyinkronkan data...");
-        refreshAllData().catch(e => console.log('Visibility sync:', e));
+        refreshAllData(true).catch(e => console.log('Silent sync:', e));
       }
     });
   }

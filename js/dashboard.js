@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DietSaya - Dashboard Module
  * Mengelola kalkulasi ringkasan harian, persentase nutrisi, dan daftar makanan hari ini.
  */
@@ -39,7 +39,8 @@ const DashboardModule = (() => {
 
     // Set Tanggal Hari Ini
     const today = new Date();
-    document.getElementById('dashboard-date').textContent = formatIndonesianDate(today);
+    const dateEl = document.getElementById('dashboard-date');
+    if (dateEl) dateEl.textContent = formatIndonesianDate(today);
 
     const settings = dashboardData.settings || {
       calorie_target: 2000,
@@ -67,21 +68,29 @@ const DashboardModule = (() => {
     const calPercent = Math.min(100, Math.round((totCal / targetCal) * 100));
 
     // Update Hero Calorie Card
-    document.getElementById('hero-target-cal').textContent = targetCal.toLocaleString('id-ID');
-    document.getElementById('hero-consumed-cal').textContent = totCal.toLocaleString('id-ID');
+    const targetCalEl = document.getElementById('hero-target-cal');
+    const consumedCalEl = document.getElementById('hero-consumed-cal');
+    if (targetCalEl) targetCalEl.textContent = targetCal.toLocaleString('id-ID');
+    if (consumedCalEl) consumedCalEl.textContent = totCal.toLocaleString('id-ID');
     
     const remEl = document.getElementById('hero-remaining-cal');
-    remEl.textContent = remainingCal.toLocaleString('id-ID');
-    if (totCal > targetCal) {
-      remEl.className = 'text-danger';
-      remEl.textContent = `Lebih +${(totCal - targetCal).toLocaleString('id-ID')}`;
-    } else {
-      remEl.className = 'text-success';
+    if (remEl) {
+      if (totCal > targetCal) {
+        remEl.className = 'text-danger';
+        remEl.textContent = `Lebih +${(totCal - targetCal).toLocaleString('id-ID')}`;
+      } else {
+        remEl.className = 'text-success';
+        remEl.textContent = remainingCal.toLocaleString('id-ID');
+      }
     }
 
-    document.getElementById('hero-percent-text').textContent = `${calPercent}%`;
-    document.getElementById('hero-radial-progress').style.setProperty('--percent', `${calPercent}%`);
-    document.getElementById('hero-cal-bar').style.width = `${calPercent}%`;
+    const percentTextEl = document.getElementById('hero-percent-text');
+    const radialEl = document.getElementById('hero-radial-progress');
+    const barEl = document.getElementById('hero-cal-bar');
+
+    if (percentTextEl) percentTextEl.textContent = `${calPercent}%`;
+    if (radialEl) radialEl.style.setProperty('--percent', `${calPercent}%`);
+    if (barEl) barEl.style.width = `${calPercent}%`;
 
     // Update Macros
     updateMacroUI('protein', totPro, Number(settings.protein_target || 120));
@@ -90,13 +99,18 @@ const DashboardModule = (() => {
 
     // Update 7-Day Stats
     const s7 = dashboardData.sevenDaysSummary || {};
-    document.getElementById('stat-7d-avg-cal').textContent = `${Math.round(s7.avgCalories || 0)} kkal`;
-    document.getElementById('stat-7d-avg-pro').textContent = `${Math.round(s7.avgProtein || 0)} g`;
-    document.getElementById('stat-7d-last-weight').textContent = s7.lastWeight ? `${s7.lastWeight} kg` : '- kg';
+    const avgCalEl = document.getElementById('stat-7d-avg-cal');
+    const avgProEl = document.getElementById('stat-7d-avg-pro');
+    const lastWeightEl = document.getElementById('stat-7d-last-weight');
+    const changeWeightEl = document.getElementById('stat-7d-change-weight');
+
+    if (avgCalEl) avgCalEl.textContent = `${Math.round(s7.avgCalories || 0)} kkal`;
+    if (avgProEl) avgProEl.textContent = `${Math.round(s7.avgProtein || 0)} g`;
+    if (lastWeightEl) lastWeightEl.textContent = s7.lastWeight ? `${s7.lastWeight} kg` : '- kg';
     
     const change = Number(s7.weightChange || 0);
     const sign = change > 0 ? `+${change.toFixed(1)}` : `${change.toFixed(1)}`;
-    document.getElementById('stat-7d-change-weight').textContent = s7.lastWeight ? `${sign} kg` : '-';
+    if (changeWeightEl) changeWeightEl.textContent = s7.lastWeight ? `${sign} kg` : '-';
 
     // Update Today's Food List
     renderTodayFoodList(logs);
@@ -118,12 +132,13 @@ const DashboardModule = (() => {
   function renderTodayFoodList(logs) {
     const container = document.getElementById('dashboard-food-list');
     const countEl = document.getElementById('today-item-count');
-    countEl.textContent = logs.length;
+    if (countEl) countEl.textContent = logs.length;
+    if (!container) return;
 
     if (!logs || logs.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-icon">🍽️</div>
+          <div class="empty-icon">🥗</div>
           <p>Belum ada makanan yang dicatat hari ini.</p>
           <button class="btn btn-secondary btn-sm" onclick="App.navigate('makan')">Catat Makanan Pertama</button>
         </div>

@@ -1,10 +1,11 @@
-/**
+﻿/**
  * DietSaya - Main Application Controller
- * Mengatur navigasi tab, state sinkronisasi data, modal, dan notifikasi toast.
+ * Mengatur navigasi tab, state sinkronisasi data realtime, modal, dan notifikasi toast.
  */
 
 const App = (() => {
   let activeTab = 'dashboard';
+  let isSyncing = false;
 
   /**
    * Inisialisasi saat aplikasi pertama kali dimuat
@@ -20,11 +21,23 @@ const App = (() => {
     if (syncBtn) {
       syncBtn.addEventListener('click', async () => {
         showLoading("Menyinkronkan data...");
-        await refreshAllData();
+        const success = await refreshAllData();
         hideLoading();
-        showToast("Data berhasil diperbarui.", "success");
+        if (success) {
+          showToast("Data berhasil diperbarui dari Google Sheets.", "success");
+        } else {
+          showToast("Gagal memperbarui data. Periksa koneksi internet.", "error");
+        }
       });
     }
+
+    // Auto-refresh saat user kembali ke tab/aplikasi (visibility change)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && AuthModule.getUser()) {
+        console.log("Tab aktif kembali, menyinkronkan data...");
+        refreshAllData().catch(e => console.log('Visibility sync:', e));
+      }
+    });
   }
 
   /**
@@ -59,6 +72,8 @@ const App = (() => {
     // Refresh sub-tampilan jika diperlukan
     if (tabName === 'riwayat') {
       FoodModule.filterHistoryByDate();
+    } else if (tabName === 'dashboard') {
+      refreshAllData().catch(e => console.log('Dashboard tab sync:', e));
     }
   }
 
@@ -85,11 +100,25 @@ const App = (() => {
    * Memuat ulang seluruh data dari Google Apps Script
    */
   async function refreshAllData() {
-    const res = await Api.request('getDashboardData', {}, 'GET');
-    if (res.success && res.data) {
-      if (res.data.dashboard) DashboardModule.render(res.data.dashboard);
-      if (res.data.foodLogs) FoodModule.setFoodLogs(res.data.foodLogs);
-      if (res.data.weightLogs) WeightModule.setWeightLogs(res.data.weightLogs);
+    if (isSyncing) return;
+    isSyncing = true;
+
+    try {
+      const res = await Api.request('getDashboardData', {}, 'POST');
+      if (res.success && res.data) {
+        if (res.data.dashboard) DashboardModule.render(res.data.dashboard);
+        if (res.data.foodLogs) FoodModule.setFoodLogs(res.data.foodLogs);
+        if (res.data.weightLogs) WeightModule.setWeightLogs(res.data.weightLogs);
+        return true;
+      } else {
+        console.warn('[Sync Warning]:', res.message);
+        return false;
+      }
+    } catch (err) {
+      console.error('[RefreshAllData Error]:', err);
+      return false;
+    } finally {
+      isSyncing = false;
     }
   }
 
@@ -142,7 +171,7 @@ const App = (() => {
     
     let icon = "ℹ️";
     if (type === "success") icon = "✅";
-    if (type === "error") icon = "⚠️";
+    if (type === "error") icon = "❌";
 
     toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
     container.appendChild(toast);

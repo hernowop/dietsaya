@@ -1,7 +1,7 @@
-/**
+﻿/**
  * DietSaya - Authentication Module
  * Menggunakan Google Identity Services (GIS) dengan Auto-Login Persistent (LocalStorage).
- * User tidak perlu login ulang setiap kali membuka aplikasi.
+ * User tidak perlu login ulang setiap kali membuka aplikasi, dan token diperbarui otomatis di background.
  */
 
 const AuthModule = (() => {
@@ -9,10 +9,13 @@ const AuthModule = (() => {
 
   let currentUser = null;
   let currentIdToken = null;
+  let isRefreshingToken = false;
 
   function parseJwt(token) {
+    if (!token) return null;
     try {
       const base64Url = token.split('.')[1];
+      if (!base64Url) return null;
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
@@ -21,6 +24,14 @@ const AuthModule = (() => {
     } catch (e) {
       return null;
     }
+  }
+
+  function isTokenExpired(token) {
+    if (!token) return true;
+    const payload = parseJwt(token);
+    if (!payload || !payload.exp) return true;
+    // Anggap expired jika sisa waktu kurang dari 5 menit
+    return (payload.exp * 1000) < (Date.now() + 5 * 60 * 1000);
   }
 
   /**
@@ -36,24 +47,28 @@ const AuthModule = (() => {
         currentUser = JSON.parse(savedUserStr);
         currentIdToken = savedToken || '';
 
-        // Langsung tampilkan dashboard tanpa menunggu
+        // Langsung tampilkan dashboard tanpa menunggu proses login ulang
         updateHeaderAndProfile(currentUser, null);
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
 
-        // Refresh data di background
-        App.refreshAllData().catch(err => console.log('Background sync:', err));
+        // Langsung tarik data terbaru dari Google Apps Script
+        App.refreshAllData().catch(err => console.log('Initial sync:', err));
       } catch (e) {
         console.error('Failed to restore saved session:', e);
       }
     }
 
-    // 2. Inisialisasi Google Identity SDK untuk background token refresh & button
+    // 2. Inisialisasi Google Identity SDK untuk background token refresh & tombol login
+    setupGoogleIdentitySDK(savedUserStr, savedToken);
+  }
+
+  function setupGoogleIdentitySDK(savedUserStr, savedToken) {
     if (window.google && window.google.accounts) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredentialResponse,
-        auto_select: true, // Otomatis login jika sudah pernah login sebelumnya
+        auto_select: true, // Otomatis login/perbarui token tanpa interupsi
         cancel_on_tap_outside: true
       });
 
@@ -68,17 +83,25 @@ const AuthModule = (() => {
         });
       }
 
-      // Jika belum ada user tersimpan, coba one-tap prompt
-      if (!savedUserStr) {
-        window.google.accounts.id.prompt();
+      // Jika belum ada user tersimpan atau token sudah expired, coba one-tap prompt di background
+      if (!savedUserStr || isTokenExpired(savedToken)) {
+        try {
+          window.google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              console.log('Google One-Tap prompt status:', notification.getNotDisplayedReason() || notification.getSkippedReason());
+            }
+          });
+        } catch (err) {
+          console.warn('One-tap prompt error:', err);
+        }
       }
     } else {
-      setTimeout(initGoogleAuth, 300);
+      setTimeout(() => setupGoogleIdentitySDK(savedUserStr, savedToken), 300);
     }
   }
 
   /**
-   * Callback setelah user memilih akun Google
+   * Callback setelah user memilih akun Google atau setelah silent auto_select
    */
   async function handleGoogleCredentialResponse(response) {
     const idToken = response.credential;
@@ -92,40 +115,43 @@ const AuthModule = (() => {
     currentUser = {
       name: profile?.name || 'User',
       email: profile?.email || '',
-      picture: profile?.picture || ''
+      picture: profile?.picture || '',
+      sub: profile?.sub || ''
     };
 
-    // Simpan ke localStorage agar tidak perlu login ulang
+    // Simpan ke localStorage agar sesi tetap bertahan permanen
     localStorage.setItem('diet_id_token', idToken);
     localStorage.setItem('diet_user_profile', JSON.stringify(currentUser));
 
-    await verifyAndLaunchApp(idToken);
+    isRefreshingToken = false;
+
+    // Pastikan UI menampilkan data pengguna terbaru
+    updateHeaderAndProfile(currentUser, null);
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-container').classList.remove('hidden');
+
+    // Tarik data terbaru
+    await App.refreshAllData();
   }
 
   /**
-   * Verifikasi token ke Google Apps Script Backend
+   * Memperbarui token di background saat token lama expired
    */
-  async function verifyAndLaunchApp(token) {
-    App.showLoading("Memverifikasi otorisasi akun...");
-    hideAuthError();
+  function handleTokenExpired() {
+    if (isRefreshingToken) return;
+    isRefreshingToken = true;
+    console.log("Mencoba memperbarui token Google di background...");
 
-    const result = await Api.request('verifyUser', { idToken: token });
-    App.hideLoading();
-
-    if (result.success && result.data) {
-      updateHeaderAndProfile(currentUser, result.data.settings);
-
-      document.getElementById('auth-screen').classList.add('hidden');
-      document.getElementById('app-container').classList.remove('hidden');
-
-      App.initAppData(result.data);
-      App.showToast(`Selamat datang, ${currentUser.name}!`, "success");
-    } else {
-      // Jika akun ditolak oleh backend (bukan akun pemilik)
-      if (result.message && result.message.includes('tidak memiliki akses')) {
-        logout();
-        showAuthError(result.message);
+    if (window.google && window.google.accounts) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          isRefreshingToken = false;
+        });
+      } catch (e) {
+        isRefreshingToken = false;
       }
+    } else {
+      isRefreshingToken = false;
     }
   }
 
@@ -192,6 +218,7 @@ const AuthModule = (() => {
     init: initGoogleAuth,
     getUser: () => currentUser,
     getIdToken: () => currentIdToken || localStorage.getItem('diet_id_token'),
+    handleTokenExpired,
     logout
   };
 })();

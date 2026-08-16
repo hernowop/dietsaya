@@ -1,24 +1,24 @@
 ﻿/**
  * DietSaya - Love & Dedication Module
  * Spesial Dibuat oleh Hernowo agar Ikaaa bahagia ❤️
- * Menyediakan animasi lope-lope (floating hearts), audio chime cinta, dan efek interaktif yang mencolok!
+ * Menyediakan animasi lope-lope (floating hearts), audio chime cinta, dan efek interaktif!
  */
 
 const LoveModule = (() => {
   let loveCount = parseInt(localStorage.getItem('ikad_love_count') || '100', 10);
 
   const sweetMessages = [
-    "Hernowo sayang Ikaaa selamanya! 💍❤️",
-    "Istri paling cantik & terbaik di seluruh dunia! 👑✨",
-    "Semangat hidup sehat ya sayang, Ikaaa selalu jadi prioritasku! 🌸",
-    "1000% cinta tulus dari suamimu, Hernowo! 🥰",
-    "Setiap baris kode ini ditulis spesial buat Ikaaa bahagia! 💻💖",
+    "Hernowo sayang Ikaaa selamanya! 💖",
+    "Istri paling cantik & terbaik di seluruh dunia! 🥰",
+    "Semangat hidup sehat ya sayang, Ikaaa selalu jadi prioritasku! ❤️",
+    "1000% cinta tulus dari suamimu, Hernowo! 💕",
+    "Setiap baris kode ini ditulis spesial buat Ikaaa bahagia! ✨",
     "Ikaaa tersayang, terima kasih sudah hadir di hidup Hernowo! 🌹",
-    "Senyuman Ikaaa adalah kebahagiaan terbesar buat Hernowo! ✨",
-    "Love you to the moon and back, My Wife Ikaaa! 🚀💞"
+    "Senyuman Ikaaa adalah kebahagiaan terbesar buat Hernowo! 😍",
+    "Love you to the moon and back, My Wife Ikaaa! 💍💖"
   ];
 
-  const heartIcons = ['💖', '💕', '💗', '💓', '💞', '❤️', '💘', '💝', '🌸', '✨', '😍', '🥰'];
+  const heartIcons = ['💖', '💕', '💗', '💓', '💞', '💘', '💝', '❤️', '🌸', '✨', '😍', '🥰'];
 
   /**
    * Mainkan chime romantis menggunakan Web Audio API

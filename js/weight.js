@@ -1,6 +1,5 @@
-/**
- * DietSaya - Weight Tracker Module
- * Menangani pencatatan berat badan, grafik fluktuasi berat badan (Chart.js), dan riwayat timbangan.
+﻿/**
+ * DietSaya - Weight Tracking Module
  */
 
 const WeightModule = (() => {
@@ -9,7 +8,7 @@ const WeightModule = (() => {
 
   function init() {
     const today = new Date().toISOString().split('T')[0];
-    const weightDateInput = document.getElementById('weight-input-date');
+    const weightDateInput = document.getElementById('weight-date');
     if (weightDateInput) weightDateInput.value = today;
   }
 
@@ -21,52 +20,52 @@ const WeightModule = (() => {
 
   async function handleSaveWeight(e) {
     e.preventDefault();
-    const date = document.getElementById('weight-input-date').value;
-    const weight = Number(document.getElementById('weight-input-val').value);
-    const note = document.getElementById('weight-input-note').value;
+    const date = document.getElementById('weight-date').value || new Date().toISOString().split('T')[0];
+    const weight = Number(document.getElementById('weight-value').value);
+    const note = document.getElementById('weight-note').value.trim();
 
-    if (!date || !weight) {
-      App.showToast("Tanggal dan berat badan wajib diisi.", "error");
+    if (!weight || weight <= 0) {
+      App.showToast("Masukkan angka berat badan yang valid.", "error");
       return;
     }
 
-    App.showLoading("Menyimpan berat badan...");
-
-    const res = await Api.request('saveWeight', {
-      date: date,
-      weight: weight,
-      note: note
-    });
-
+    App.showLoading("Menyimpan data berat badan...");
+    const res = await Api.request('saveWeight', { date, weight, note });
     App.hideLoading();
 
     if (res.success) {
-      App.showToast("Berat badan berhasil dicatat!", "success");
-      document.getElementById('weight-input-val').value = '';
-      document.getElementById('weight-input-note').value = '';
+      App.showToast("Data berat badan berhasil disimpan!", "success");
+      document.getElementById('weight-value').value = '';
+      document.getElementById('weight-note').value = '';
       await App.refreshAllData();
     } else {
-      App.showToast(res.message || "Gagal mencatat berat badan.", "error");
+      App.showToast(res.message || "Gagal menyimpan data berat badan.", "error");
     }
   }
 
   function renderChart() {
-    const ctx = document.getElementById('weight-chart');
-    if (!ctx) return;
+    const canvas = document.getElementById('weightChart');
+    if (!canvas) return;
 
-    // Urutkan data berdasarkan tanggal asc
-    const sorted = [...weightLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const labels = sorted.map(item => {
-      const d = new Date(item.date);
-      return `${d.getDate()}/${d.getMonth() + 1}`;
-    });
-    const values = sorted.map(item => Number(item.weight));
-
-    if (chartInstance) {
-      chartInstance.destroy();
+    if (weightLogs.length === 0) {
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+      return;
     }
 
-    if (values.length === 0) {
+    // Urutkan ascending berdasarkan tanggal untuk chart
+    const sorted = [...weightLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const labels = sorted.map(item => item.date.slice(5)); // MM-DD
+    const values = sorted.map(item => item.weight);
+
+    const ctx = canvas.getContext('2d');
+
+    if (chartInstance) {
+      chartInstance.data.labels = labels;
+      chartInstance.data.datasets[0].data = values;
+      chartInstance.update();
       return;
     }
 
@@ -78,36 +77,32 @@ const WeightModule = (() => {
           label: 'Berat Badan (kg)',
           data: values,
           borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
           fill: true,
-          tension: 0.35,
-          pointRadius: 5,
-          pointBackgroundColor: '#10b981',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#10b981'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => `Berat: ${ctx.parsed.y} kg`
-            }
+          legend: {
+            display: false
           }
         },
         scales: {
           y: {
             beginAtZero: false,
-            grid: { color: '#f1f5f9' },
-            ticks: {
-              callback: (v) => `${v} kg`
+            grid: {
+              color: 'rgba(0,0,0,0.05)'
             }
           },
           x: {
-            grid: { display: false }
+            grid: {
+              display: false
+            }
           }
         }
       }

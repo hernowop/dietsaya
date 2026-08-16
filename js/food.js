@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DietSaya - Food & AI Analysis Module (Text, Photo & Manual Input)
  */
 
@@ -144,7 +144,7 @@ const FoodModule = (() => {
     if (res.success && res.data && res.data.items && res.data.items.length > 0) {
       pendingAIItems = res.data.items.map((item, idx) => ({
         tempId: 'temp_' + Date.now() + '_' + idx,
-        food_name: item.name || 'Makanan',
+        food_name: item.name || item.food_name || 'Makanan',
         portion: item.portion || '1 porsi',
         calories: Number(item.calories) || 0,
         protein: Number(item.protein) || 0,
@@ -357,11 +357,11 @@ const FoodModule = (() => {
     const container = document.getElementById('history-items-list');
 
     if (!selectedDate) {
-      container.innerHTML = '<p class="text-muted text-center">Pilih tanggal untuk melihat riwayat.</p>';
+      if (container) container.innerHTML = '<p class="text-muted text-center">Pilih tanggal untuk melihat riwayat.</p>';
       return;
     }
 
-    dateStrEl.textContent = selectedDate;
+    if (dateStrEl) dateStrEl.textContent = selectedDate;
     const filtered = allFoodLogs.filter(item => item.date === selectedDate);
 
     let totCal = 0, totPro = 0, totCarbs = 0, totFat = 0;
@@ -372,15 +372,22 @@ const FoodModule = (() => {
       totFat += Number(i.fat || 0);
     });
 
-    document.getElementById('hist-tot-cal').textContent = totCal;
-    document.getElementById('hist-tot-pro').textContent = totPro;
-    document.getElementById('hist-tot-carbs').textContent = totCarbs;
-    document.getElementById('hist-tot-fat').textContent = totFat;
+    const totCalEl = document.getElementById('hist-tot-cal');
+    const totProEl = document.getElementById('hist-tot-pro');
+    const totCarbsEl = document.getElementById('hist-tot-carbs');
+    const totFatEl = document.getElementById('hist-tot-fat');
+
+    if (totCalEl) totCalEl.textContent = totCal;
+    if (totProEl) totProEl.textContent = totPro;
+    if (totCarbsEl) totCarbsEl.textContent = totCarbs;
+    if (totFatEl) totFatEl.textContent = totFat;
+
+    if (!container) return;
 
     if (filtered.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-icon">📂</div>
+          <div class="empty-icon">📋</div>
           <p>Tidak ada catatan makanan pada tanggal ${selectedDate}.</p>
         </div>
       `;
@@ -414,7 +421,8 @@ const FoodModule = (() => {
 
   function resetHistoryFilterToday() {
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('filter-history-date').value = today;
+    const filterEl = document.getElementById('filter-history-date');
+    if (filterEl) filterEl.value = today;
     filterHistoryByDate();
   }
 

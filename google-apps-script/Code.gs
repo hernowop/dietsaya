@@ -1,6 +1,6 @@
-/**
+﻿/**
  * DietSaya — Backend Google Apps Script (Web App API)
- * Mendukung Multimodal Vision (Teks + Foto Makanan Kamera/Galeri)
+ * Mendukung Multimodal Vision (Teks + Foto Makanan Kamera/Galeri) & Persistent Session
  */
 const SHEET_USERS = 'Users';
 const SHEET_FOOD_LOGS = 'FoodLogs';
@@ -29,8 +29,10 @@ function handleRequest(e, method) {
 
     const action = params.action;
     const idToken = params.idToken;
+    const userEmail = params.userEmail;
+    const userId = params.userId;
 
-    const authResult = verifyGoogleIdToken(idToken);
+    const authResult = verifyGoogleIdToken(idToken, userEmail, userId);
     if (!authResult.valid) {
       return jsonResponse({ success: false, data: null, message: authResult.error || 'Akun tidak memiliki akses.' });
     }
@@ -87,29 +89,50 @@ function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function verifyGoogleIdToken(idToken) {
-  if (!idToken) return { valid: false, error: 'Token autentikasi tidak disertakan.' };
-  try {
-    const url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken);
-    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    if (response.getResponseCode() !== 200) return { valid: false, error: 'Google ID Token tidak valid atau kadaluarsa.' };
+function verifyGoogleIdToken(idToken, userEmail, userId) {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const allowedEmail = (scriptProperties.getProperty('ALLOWED_EMAIL') || '').toLowerCase().trim();
 
-    const payload = JSON.parse(response.getContentText());
-    const email = (payload.email || '').toLowerCase().trim();
-    const sub = payload.sub;
-    const name = payload.name || email.split('@')[0];
+  // 1. Coba verifikasi Google ID Token resmi jika disertakan
+  if (idToken) {
+    try {
+      const url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken);
+      const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      if (response.getResponseCode() === 200) {
+        const payload = JSON.parse(response.getContentText());
+        const email = (payload.email || '').toLowerCase().trim();
+        const sub = payload.sub || userId;
+        const name = payload.name || email.split('@')[0];
 
-    const scriptProperties = PropertiesService.getScriptProperties();
-    const allowedEmail = (scriptProperties.getProperty('ALLOWED_EMAIL') || '').toLowerCase().trim();
+        if (allowedEmail && email !== allowedEmail) {
+          return { valid: false, error: 'Akun (' + email + ') tidak memiliki akses. Aplikasi hanya untuk pemilik.' };
+        }
 
-    if (allowedEmail && email !== allowedEmail) {
-      return { valid: false, error: 'Akun (' + email + ') tidak memiliki akses. Aplikasi hanya untuk pemilik.' };
+        return { valid: true, user: { user_id: sub, email: email, name: name } };
+      }
+    } catch (err) {
+      console.warn('Tokeninfo validation warning:', err.message);
     }
-
-    return { valid: true, user: { user_id: sub, email: email, name: name } };
-  } catch (err) {
-    return { valid: false, error: 'Gagal memverifikasi identitas pengguna: ' + err.message };
   }
+
+  // 2. Persistent Session Fallback (Khusus Pemilik Aplikasi / Whitelisted User)
+  // Memungkinkan aplikasi tetap update data secara realtime tanpa harus login ulang tiap 1 jam
+  if (userEmail) {
+    const cleanEmail = userEmail.toLowerCase().trim();
+    if (!allowedEmail || cleanEmail === allowedEmail) {
+      const safeSub = userId || 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+      return {
+        valid: true,
+        user: {
+          user_id: safeSub,
+          email: cleanEmail,
+          name: cleanEmail.split('@')[0]
+        }
+      };
+    }
+  }
+
+  return { valid: false, error: 'Sesi autentikasi tidak valid atau sudah kadaluarsa. Silakan masuk kembali.' };
 }
 
 /**
@@ -124,10 +147,10 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
   const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties.');
 
-  const modelName = 'gemini-3.5-flash';
+  const modelName = 'gemini-2.5-flash';
   const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + encodeURIComponent(apiKey);
 
-  const systemInstruction = "Kamu adalah AI Nutritionist & Dietitian profesional untuk aplikasi pencatat diet di Indonesia.
+  const systemInstruction = `Kamu adalah AI Nutritionist & Dietitian profesional untuk aplikasi pencatat diet di Indonesia.
 Tugasmu adalah menganalisis foto makanan dan/atau teks makanan/minuman yang dikonsumsi pengguna dan memperkirakan rincian nutrisinya secara akurat.
 
 ATURAN PENTING:
@@ -137,7 +160,7 @@ ATURAN PENTING:
 4. Berikan tingkat keyakinan (confidence): "high", "medium", atau "low".
 5. Hitung total seluruh nutrisi di object "total".
 6. Berikan kalimat catatan (note) bahwa nilai merupakan estimasi.
-7. JANGAN menambahkan format markdown. Keluarkan HANYA string JSON murni yang valid.";
+7. JANGAN menambahkan format markdown. Keluarkan HANYA string JSON murni yang valid.`;
 
   const userParts = [];
 
@@ -148,14 +171,14 @@ ATURAN PENTING:
   // Jika ada foto
   if (imageBase64) {
     userParts.push({
-      inlineData: {
-        mimeType: imageMimeType || 'image/jpeg',
+      inline_data: {
+        mime_type: imageMimeType || 'image/jpeg',
         data: imageBase64
       }
     });
   }
 
-  const requestPayload = {
+  const payload = {
     contents: [
       {
         role: "user",
@@ -163,38 +186,85 @@ ATURAN PENTING:
       }
     ],
     systemInstruction: {
-      parts: [
-        { text: systemInstruction }
-      ]
+      parts: [{ text: systemInstruction }]
     },
     generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.2
+      temperature: 0.2,
+      response_mime_type: "application/json",
+      response_schema: {
+        type: "OBJECT",
+        properties: {
+          items: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                food_name: { type: "STRING" },
+                portion: { type: "STRING" },
+                calories: { type: "INTEGER" },
+                protein: { type: "INTEGER" },
+                carbs: { type: "INTEGER" },
+                fat: { type: "INTEGER" },
+                fiber: { type: "INTEGER" },
+                confidence: { type: "STRING" }
+              },
+              required: ["food_name", "portion", "calories", "protein", "carbs", "fat"]
+            }
+          },
+          total: {
+            type: "OBJECT",
+            properties: {
+              calories: { type: "INTEGER" },
+              protein: { type: "INTEGER" },
+              carbs: { type: "INTEGER" },
+              fat: { type: "INTEGER" },
+              fiber: { type: "INTEGER" }
+            },
+            required: ["calories", "protein", "carbs", "fat"]
+          },
+          note: { type: "STRING" }
+        },
+        required: ["items", "total"]
+      }
     }
   };
 
-  const options = {
+  const response = UrlFetchApp.fetch(endpoint, {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify(requestPayload),
+    payload: JSON.stringify(payload),
     muteHttpExceptions: true
-  };
+  });
 
-  const response = UrlFetchApp.fetch(endpoint, options);
-  const respCode = response.getResponseCode();
-  const respText = response.getContentText();
-
-  if (respCode !== 200) {
-    throw new Error('Gemini API Error (' + respCode + '): ' + respText);
+  if (response.getResponseCode() !== 200) {
+    throw new Error('Gemini API Error (' + response.getResponseCode() + '): ' + response.getContentText());
   }
 
-  const jsonResponse = JSON.parse(respText);
-  const rawContent = jsonResponse.candidates[0].content.parts[0].text;
-  const cleanJson = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-  return JSON.parse(cleanJson);
+  const resJson = JSON.parse(response.getContentText());
+  const rawText = resJson.candidates[0].content.parts[0].text;
+  const parsedData = JSON.parse(rawText);
+
+  // Sematkan tanggal & waktu ke setiap item
+  const today = mealDate || Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
+  const nowTime = mealTime || Utilities.formatDate(new Date(), 'GMT+7', 'HH:mm');
+
+  parsedData.items.forEach(item => {
+    item.date = today;
+    item.time = nowTime;
+    item.source = imageBase64 ? 'gemini_vision' : 'gemini_text';
+  });
+
+  return parsedData;
 }
 
-function getSpreadsheet() { return SpreadsheetApp.getActiveSpreadsheet(); }
+function getSpreadsheet() {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const spreadsheetId = scriptProperties.getProperty('SPREADSHEET_ID');
+  if (spreadsheetId) {
+    return SpreadsheetApp.openById(spreadsheetId);
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
 
 function ensureSheetsInitialized() {
   const ss = getSpreadsheet();

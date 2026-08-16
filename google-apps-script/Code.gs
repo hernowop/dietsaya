@@ -274,13 +274,40 @@ ATURAN PENTING:
   throw new Error('Gagal menganalisis dengan Gemini API: ' + lastErrorMsg);
 }
 
+/**
+ * Mendapatkan Spreadsheet Database (Selalu membuka file Sheet spesifik langsung)
+ */
 function getSpreadsheet() {
   const scriptProperties = PropertiesService.getScriptProperties();
-  const spreadsheetId = scriptProperties.getProperty('SPREADSHEET_ID');
+  let spreadsheetId = scriptProperties.getProperty('SPREADSHEET_ID');
+
   if (spreadsheetId) {
-    return SpreadsheetApp.openById(spreadsheetId);
+    try {
+      const ss = SpreadsheetApp.openById(spreadsheetId);
+      if (ss) return ss;
+    } catch (e) {
+      console.warn('Cannot open by SPREADSHEET_ID:', e);
+    }
   }
-  return SpreadsheetApp.getActiveSpreadsheet();
+
+  // Cek apakah script terikat langsung (container-bound) ke Spreadsheet
+  try {
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) {
+      scriptProperties.setProperty('SPREADSHEET_ID', active.getId());
+      return active;
+    }
+  } catch (e) {}
+
+  // Jika standalone dan belum ada SPREADSHEET_ID, buat file Spreadsheet baru otomatis di Drive
+  try {
+    const newSheet = SpreadsheetApp.create('DietSaya_Database_Hernowo');
+    spreadsheetId = newSheet.getId();
+    scriptProperties.setProperty('SPREADSHEET_ID', spreadsheetId);
+    return newSheet;
+  } catch (e) {
+    throw new Error('Gagal membuka atau membuat Google Spreadsheet: ' + e.message);
+  }
 }
 
 function ensureSheetsInitialized() {
@@ -468,6 +495,7 @@ function getDashboardData(user) {
   const foodLogs = getFoodLogs(user);
   const weightLogs = getWeightLogs(user);
   const ss = getSpreadsheet();
+  const directSheetUrl = ss.getUrl();
 
   const todayStr = Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd');
   const todayLogs = foodLogs.filter(f => f.date === todayStr);
@@ -499,7 +527,7 @@ function getDashboardData(user) {
   return {
     user: user,
     settings: settings,
-    spreadsheetUrl: ss ? ss.getUrl() : 'https://drive.google.com',
+    spreadsheetUrl: directSheetUrl,
     dashboard: {
       settings: settings,
       todayLogs: todayLogs,

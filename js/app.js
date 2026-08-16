@@ -13,7 +13,7 @@ const App = (() => {
   function init() {
     // Restore saved spreadsheet URL if available
     const savedSheetUrl = localStorage.getItem('diet_spreadsheet_url');
-    if (savedSheetUrl) {
+    if (savedSheetUrl && !savedSheetUrl.includes('drive.google.com/drive')) {
       updateSpreadsheetLink(savedSheetUrl);
     }
 
@@ -52,6 +52,27 @@ const App = (() => {
     const btn = document.getElementById('btn-open-spreadsheet');
     if (btn) {
       btn.href = url;
+    }
+  }
+
+  async function openSpreadsheet(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    let url = localStorage.getItem('diet_spreadsheet_url');
+    if (!url || url.includes('drive.google.com/drive')) {
+      showLoading("Membuka database Google Sheets...");
+      const res = await Api.request('getSpreadsheetUrl', {}, 'POST');
+      hideLoading();
+      if (res.success && res.data && res.data.spreadsheetUrl) {
+        url = res.data.spreadsheetUrl;
+        updateSpreadsheetLink(url);
+      }
+    }
+
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      showToast("Gagal mengambil link langsung Google Sheets.", "error");
     }
   }
 
@@ -217,6 +238,7 @@ const App = (() => {
     initAppData,
     refreshAllData,
     updateSpreadsheetLink,
+    openSpreadsheet,
     handleSaveSettings,
     showLoading,
     hideLoading,

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DietSaya - Main Application Controller
  * Mengatur navigasi tab, state sinkronisasi data realtime, modal, dan notifikasi toast.
  */
@@ -32,7 +32,7 @@ const App = (() => {
         if (success) {
           showToast("Data berhasil diperbarui dari Google Sheets.", "success");
         } else {
-          showToast("Gagal memperbarui data. Periksa koneksi internet.", "error");
+          showToast(lastSyncError || "Gagal memperbarui data. Periksa koneksi atau URL Apps Script.", "error");
         }
       });
     }
@@ -138,12 +138,15 @@ const App = (() => {
     navigate('dashboard');
   }
 
+  let lastSyncError = '';
+
   /**
    * Memuat ulang seluruh data dari Google Apps Script
    */
   async function refreshAllData() {
-    if (isSyncing) return;
+    if (isSyncing) return false;
     isSyncing = true;
+    lastSyncError = '';
 
     try {
       const res = await Api.request('getDashboardData', {}, 'POST');
@@ -166,10 +169,12 @@ const App = (() => {
         }
         return true;
       } else {
+        lastSyncError = res.message || 'Gagal terhubung ke Google Apps Script.';
         console.warn('[Sync Warning]:', res.message);
         return false;
       }
     } catch (err) {
+      lastSyncError = err.message || 'Terjadi kesalahan saat memuat data.';
       console.error('[RefreshAllData Error]:', err);
       return false;
     } finally {

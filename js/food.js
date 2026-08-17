@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DietSaya - Food & AI Analysis Module (Text, Photo & Manual Input)
  */
 
@@ -543,10 +543,40 @@ const FoodModule = (() => {
     });
   }
 
+  function selectQuickPreset(name, portion, calories, protein, carbs, fat) {
+    if (typeof App !== 'undefined' && App.triggerHaptic) App.triggerHaptic(40);
+    
+    // Isi ke text input AI
+    const area = document.getElementById('ai-food-input');
+    if (area) {
+      area.value = `${name} (${portion})`;
+    }
+
+    // Isi ke form manual juga
+    const mName = document.getElementById('manual-food-name');
+    const mPortion = document.getElementById('manual-food-portion');
+    const mCal = document.getElementById('manual-food-cal');
+    const mPro = document.getElementById('manual-food-pro');
+    const mCarbs = document.getElementById('manual-food-carbs');
+    const mFat = document.getElementById('manual-food-fat');
+
+    if (mName) mName.value = name;
+    if (mPortion) mPortion.value = portion;
+    if (mCal) mCal.value = calories;
+    if (mPro) mPro.value = protein;
+    if (mCarbs) mCarbs.value = carbs;
+    if (mFat) mFat.value = fat;
+
+    if (typeof App !== 'undefined' && App.showToast) {
+      App.showToast(`Pilihan cepat: ${name} (${calories} kkal)`, "info");
+    }
+  }
+
   return {
     init,
     switchMode,
     fillSample,
+    selectQuickPreset,
     handleImageSelected,
     removePhoto,
     analyzeWithAI,

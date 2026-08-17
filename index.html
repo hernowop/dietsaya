@@ -29,7 +29,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 
@@ -81,6 +81,22 @@
         </div>
       </div>
       <div class="header-action">
+        <button id="btn-theme-toggle" class="icon-btn" title="Ganti Tema Gelap / Terang" aria-label="Toggle Dark Mode" onclick="App.toggleTheme()">
+          <svg id="theme-icon-moon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg id="theme-icon-sun" class="hidden" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
         <button id="btn-quick-sync" class="icon-btn" title="Segarkan Data" aria-label="Refresh Data">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
@@ -178,6 +194,41 @@
           </div>
         </div>
 
+        <!-- Interactive Water Tracker Widget -->
+        <div class="card water-tracker-card" id="water-tracker-widget">
+          <div class="water-tracker-header">
+            <div class="water-tracker-title">
+              <span>💧</span>
+              <span>Air Minum Harian</span>
+            </div>
+            <div class="water-tracker-stats">
+              <span id="water-current-ml">0</span> / <span id="water-target-ml">2000</span> ml
+              <small class="text-muted" style="margin-left: 4px;">(<span id="water-glasses-count">0</span>/8 Gelas)</small>
+            </div>
+          </div>
+
+          <!-- 8 Interactive Glass Buttons -->
+          <div class="water-glasses-grid" id="water-glasses-grid">
+            <button type="button" class="water-glass-btn" data-index="1" onclick="DashboardModule.toggleWaterGlass(1)" title="Gelas 1 (250ml)">🥛</button>
+            <button type="button" class="water-glass-btn" data-index="2" onclick="DashboardModule.toggleWaterGlass(2)" title="Gelas 2 (500ml)">🥛</button>
+            <button type="button" class="water-glass-btn" data-index="3" onclick="DashboardModule.toggleWaterGlass(3)" title="Gelas 3 (750ml)">🥛</button>
+            <button type="button" class="water-glass-btn" data-index="4" onclick="DashboardModule.toggleWaterGlass(4)" title="Gelas 4 (1000ml)">🥛</button>
+            <button type="button" class="water-glass-btn" data-index="5" onclick="DashboardModule.toggleWaterGlass(5)" title="Gelas 5 (1250ml)">🥛</button>
+            <button type="button" class="water-glass-btn" data-index="6" onclick="DashboardModule.toggleWaterGlass(6)" title="Gelas 6 (1500ml)">🥛</button>
+            <button type="button" class="water-glass-btn" data-index="7" onclick="DashboardModule.toggleWaterGlass(7)" title="Gelas 7 (1750ml)">🥛</button>
+            <button type="button" class="water-glass-btn" data-index="8" onclick="DashboardModule.toggleWaterGlass(8)" title="Gelas 8 (2000ml)">🥛</button>
+          </div>
+
+          <div class="water-actions">
+            <button type="button" class="btn-water" onclick="DashboardModule.adjustWater(-250)">
+              <span>- 250 ml</span>
+            </button>
+            <button type="button" class="btn-water" onclick="DashboardModule.adjustWater(250)">
+              <span>+ 250 ml (1 Gelas)</span>
+            </button>
+          </div>
+        </div>
+
         <!-- AI Nutrition Coach Card (Live Advice & Feedback) -->
         <div class="card ai-coach-card mt-3" id="dashboard-ai-card">
           <div class="ai-coach-header">
@@ -269,6 +320,44 @@
           <button type="button" id="btn-mode-manual" class="mode-btn" onclick="FoodModule.switchMode('manual')">
             <span>✏️ Input Manual</span>
           </button>
+        </div>
+
+        <!-- Quick Food Presets (1-Click Instant Add) -->
+        <div class="quick-presets-section">
+          <div class="quick-presets-header">
+            <span class="quick-presets-title">⚡ Pilihan Cepat / Favorit</span>
+            <small class="text-muted">Klik untuk input instan</small>
+          </div>
+          <div class="quick-presets-grid">
+            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('2 Telur Rebus', '2 butir', 155, 13, 1, 11)">
+              <span class="preset-icon">🥚</span>
+              <div class="preset-info">
+                <span class="preset-name">2 Telur Rebus</span>
+                <span class="preset-macros">155 kkal • 13g P</span>
+              </div>
+            </button>
+            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('Nasi Putih 1 Porsi', '1 piring / 150g', 195, 4, 43, 0)">
+              <span class="preset-icon">🍚</span>
+              <div class="preset-info">
+                <span class="preset-name">Nasi Putih 150g</span>
+                <span class="preset-macros">195 kkal • 43g K</span>
+              </div>
+            </button>
+            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('Dada Ayam Panggang', '1 potong / 150g', 248, 46, 0, 5)">
+              <span class="preset-icon">🍗</span>
+              <div class="preset-info">
+                <span class="preset-name">Dada Ayam 150g</span>
+                <span class="preset-macros">248 kkal • 46g P</span>
+              </div>
+            </button>
+            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('Pisang Cavendish Segar', '1 buah sedang', 105, 1, 27, 0)">
+              <span class="preset-icon">🍌</span>
+              <div class="preset-info">
+                <span class="preset-name">Pisang Segar</span>
+                <span class="preset-macros">105 kkal • 27g K</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         <!-- AI Text Box Area -->
@@ -604,7 +693,7 @@
 
     </main>
 
-    <!-- Bottom Navigation Bar (Mobile First) -->
+    <!-- Bottom Navigation Bar (Mobile First with Center Elevated FAB) -->
     <nav class="bottom-nav">
       <button class="nav-item active" data-target="dashboard" onclick="App.navigate('dashboard')">
         <div class="nav-icon">
@@ -614,16 +703,6 @@
           </svg>
         </div>
         <span class="nav-label">Dashboard</span>
-      </button>
-
-      <button class="nav-item" data-target="makan" onclick="App.navigate('makan')">
-        <div class="nav-icon nav-icon-highlight">
-          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </div>
-        <span class="nav-label">Makan AI</span>
       </button>
 
       <button class="nav-item" data-target="riwayat" onclick="App.navigate('riwayat')">
@@ -638,6 +717,17 @@
         </div>
         <span class="nav-label">Riwayat</span>
       </button>
+
+      <!-- Center Elevated FAB -->
+      <div class="nav-fab-item">
+        <button class="nav-fab-btn" data-target="makan" onclick="App.navigate('makan')" title="Catat Makanan Baru" aria-label="Tambah Makanan">
+          <svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.8" fill="none">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+        <span class="nav-fab-label">Catat AI</span>
+      </div>
 
       <button class="nav-item" data-target="berat" onclick="App.navigate('berat')">
         <div class="nav-icon">
@@ -709,13 +799,13 @@
   </div>
 
   <!-- Application Scripts -->
-  <script src="js/api.js?v=2"></script>
-  <script src="js/auth.js?v=2"></script>
-  <script src="js/dashboard.js?v=2"></script>
-  <script src="js/food.js?v=2"></script>
-  <script src="js/weight.js?v=2"></script>
-  <script src="js/love.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/api.js?v=3"></script>
+  <script src="js/auth.js?v=3"></script>
+  <script src="js/dashboard.js?v=3"></script>
+  <script src="js/food.js?v=3"></script>
+  <script src="js/weight.js?v=3"></script>
+  <script src="js/love.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
 
   <script>
     if ('serviceWorker' in navigator) {

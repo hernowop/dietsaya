@@ -11,6 +11,9 @@ const App = (() => {
    * Inisialisasi saat aplikasi pertama kali dimuat
    */
   function init() {
+    // Inisialisasi Tema (Dark/Light Mode)
+    initTheme();
+
     // Restore saved spreadsheet URL if available
     const savedSheetUrl = localStorage.getItem('diet_spreadsheet_url');
     if (savedSheetUrl && !savedSheetUrl.includes('drive.google.com/drive')) {
@@ -22,10 +25,16 @@ const App = (() => {
     WeightModule.init();
     AuthModule.init();
 
+    // Inisialisasi Water Tracker di Dashboard
+    if (typeof DashboardModule !== 'undefined' && DashboardModule.initWaterTracker) {
+      DashboardModule.initWaterTracker();
+    }
+
     // Event listener quick sync
     const syncBtn = document.getElementById('btn-quick-sync');
     if (syncBtn) {
       syncBtn.addEventListener('click', async () => {
+        triggerHaptic(40);
         showLoading("Menyinkronkan data...");
         const success = await refreshAllData();
         hideLoading();
@@ -43,6 +52,48 @@ const App = (() => {
         refreshAllData(true).catch(e => console.log('Silent sync:', e));
       }
     });
+  }
+
+  /**
+   * Sistem Dark / Light Theme
+   */
+  function initTheme() {
+    const savedTheme = localStorage.getItem('dietsaya_theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const activeTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    applyTheme(activeTheme);
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      const moonIcon = document.getElementById('theme-icon-moon');
+      const sunIcon = document.getElementById('theme-icon-sun');
+      if (moonIcon) moonIcon.classList.add('hidden');
+      if (sunIcon) sunIcon.classList.remove('hidden');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      const moonIcon = document.getElementById('theme-icon-moon');
+      const sunIcon = document.getElementById('theme-icon-sun');
+      if (moonIcon) moonIcon.classList.remove('hidden');
+      if (sunIcon) sunIcon.classList.add('hidden');
+    }
+  }
+
+  function toggleTheme() {
+    triggerHaptic(30);
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+    localStorage.setItem('dietsaya_theme', newTheme);
+  }
+
+  function triggerHaptic(duration = 40) {
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate(duration);
+      }
+    } catch (e) {}
   }
 
   function updateSpreadsheetLink(url) {
@@ -103,6 +154,7 @@ const App = (() => {
 
     // Scroll ke atas
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    triggerHaptic(25);
 
     // Refresh sub-tampilan jika diperlukan
     if (tabName === 'riwayat') {
@@ -133,6 +185,10 @@ const App = (() => {
     }
     if (initData.weightLogs) {
       WeightModule.setWeightLogs(initData.weightLogs);
+    }
+
+    if (typeof DashboardModule !== 'undefined' && DashboardModule.initWaterTracker) {
+      DashboardModule.initWaterTracker();
     }
 
     navigate('dashboard');
@@ -188,33 +244,35 @@ const App = (() => {
   async function handleSaveSettings(e) {
     e.preventDefault();
     const settings = {
-      calorie_target: Number(document.getElementById('target-calories').value),
-      protein_target: Number(document.getElementById('target-protein').value),
-      carbs_target: Number(document.getElementById('target-carbs').value),
-      fat_target: Number(document.getElementById('target-fat').value)
+      calorie_target: parseInt(document.getElementById('set-cal-target').value) || 2000,
+      protein_target: parseInt(document.getElementById('set-pro-target').value) || 120,
+      carbs_target: parseInt(document.getElementById('set-carbs-target').value) || 250,
+      fat_target: parseInt(document.getElementById('set-fat-target').value) || 65
     };
 
-    showLoading("Menyimpan pengaturan target...");
+    showLoading("Menyimpan preferensi...");
     const res = await Api.request('updateSettings', { settings });
     hideLoading();
 
     if (res.success) {
       showToast("Target nutrisi berhasil diperbarui!", "success");
+      triggerHaptic(50);
       await refreshAllData();
-      navigate('dashboard');
     } else {
-      showToast(res.message || "Gagal menyimpan target.", "error");
+      showToast(res.message || "Gagal menyimpan target nutrisi.", "error");
     }
   }
 
   /**
    * UI Helpers: Loading & Toast Notifications
    */
-  function showLoading(text = "Memproses...") {
+  function showLoading(message = "Memproses data...") {
     const overlay = document.getElementById('global-loading');
-    const label = document.getElementById('loading-text');
-    if (label) label.textContent = text;
-    if (overlay) overlay.classList.remove('hidden');
+    const text = document.getElementById('loading-text');
+    if (overlay && text) {
+      text.textContent = message;
+      overlay.classList.remove('hidden');
+    }
   }
 
   function hideLoading() {
@@ -254,7 +312,9 @@ const App = (() => {
     handleSaveSettings,
     showLoading,
     hideLoading,
-    showToast
+    showToast,
+    toggleTheme,
+    triggerHaptic
   };
 })();
 

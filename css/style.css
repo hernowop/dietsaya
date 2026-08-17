@@ -1821,3 +1821,222 @@ body {
 [data-theme="dark"] .btn-secondary:hover {
   background: #334155;
 }
+
+/* ==========================================================
+   GROUPED MEAL CARDS (ACCORDION)
+   ========================================================== */
+.meal-group-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: all 0.25s ease;
+  margin-bottom: 10px;
+}
+.meal-group-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-md);
+}
+[data-theme="dark"] .meal-group-card {
+  background: #141f36;
+  border-color: #24344d;
+}
+.meal-group-header {
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg-card);
+  transition: background-color 0.2s;
+}
+[data-theme="dark"] .meal-group-header {
+  background: #141f36;
+}
+.meal-group-header:hover {
+  background: #f8fafc;
+}
+[data-theme="dark"] .meal-group-header:hover {
+  background: #1a2744;
+}
+.meal-group-main-info {
+  flex: 1;
+  min-width: 0;
+}
+.meal-group-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.meal-group-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meal-group-badge-count {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+[data-theme="dark"] .meal-group-badge-count {
+  background: #064e3b;
+  color: #34d399;
+}
+.meal-group-time-tag {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.meal-group-summary-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 12px;
+}
+.meal-group-total-cal {
+  text-align: right;
+}
+.meal-group-total-cal strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+[data-theme="dark"] .meal-group-total-cal strong {
+  color: #34d399;
+}
+.meal-group-total-cal small {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.meal-group-expand-icon {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-input);
+}
+.meal-group-card.expanded .meal-group-expand-icon {
+  transform: rotate(180deg);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+[data-theme="dark"] .meal-group-expand-icon {
+  background: #1e293b;
+}
+
+/* Accordion Collapsible Content */
+.meal-group-content {
+  display: none;
+  border-top: 1px solid var(--border-color);
+  background: #fafbfc;
+  animation: slideDown 0.25s ease forwards;
+}
+[data-theme="dark"] .meal-group-content {
+  background: #0b1120;
+  border-color: #24344d;
+}
+.meal-group-card.expanded .meal-group-content {
+  display: block;
+}
+.meal-subitems-list {
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+}
+.meal-subitem-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border-color);
+}
+.meal-subitem-row:last-child {
+  border-bottom: none;
+}
+.meal-subitem-info {
+  flex: 1;
+  min-width: 0;
+}
+.meal-subitem-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.meal-subitem-portion {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.meal-subitem-macros {
+  display: flex;
+  gap: 6px;
+  font-size: 0.72rem;
+  margin-top: 4px;
+}
+.meal-subitem-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 10px;
+}
+.meal-subitem-cal {
+  text-align: right;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+.meal-group-footer {
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+[data-theme="dark"] .meal-group-footer {
+  background: #141f36;
+  border-color: #24344d;
+}
+.btn-delete-group {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+[data-theme="dark"] .btn-delete-group {
+  background: #450a0a;
+  border-color: #7f1d1d;
+  color: #f87171;
+}
+.btn-delete-group:hover {
+  background: var(--danger);
+  color: #fff;
+}
+

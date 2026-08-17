@@ -154,6 +154,9 @@ const FoodModule = (() => {
     App.hideLoading();
 
     if (res.success && res.data && res.data.items && res.data.items.length > 0) {
+      const currentMealGroup = res.data.meal_group || 'Menu Makanan';
+      const currentGroupId = res.data.group_id || ('grp_' + Date.now());
+
       pendingAIItems = res.data.items.map((item, idx) => ({
         tempId: 'temp_' + Date.now() + '_' + idx,
         food_name: item.name || item.food_name || 'Makanan',
@@ -165,18 +168,20 @@ const FoodModule = (() => {
         fiber: Number(item.fiber) || 0,
         confidence: item.confidence || 'medium',
         date: mealDate,
-        time: mealTime
+        time: mealTime,
+        meal_group: item.meal_group || currentMealGroup,
+        group_id: item.group_id || currentGroupId
       }));
 
       const noteEl = document.getElementById('ai-estimation-note');
       if (noteEl) {
-        noteEl.textContent = res.data.note || "Nilai merupakan estimasi Gemini AI. Silakan periksa dan koreksi sebelum disimpan.";
+        noteEl.textContent = res.data.note || `Estimasi Gemini AI untuk paket: ${currentMealGroup}. Periksa dan koreksi sebelum disimpan.`;
       }
       
       renderEditableAICards();
       const resultSec = document.getElementById('ai-result-section');
       if (resultSec) resultSec.classList.remove('hidden');
-      App.showToast("Estimasi AI berhasil diperoleh!", "success");
+      App.showToast(`Estimasi AI untuk "${currentMealGroup}" berhasil diperoleh!`, "success");
     } else {
       App.showToast(res.message || "Gagal menganalisis makanan dengan Gemini.", "error");
     }
@@ -444,29 +449,122 @@ const FoodModule = (() => {
       return;
     }
 
-    container.innerHTML = filtered.map(item => `
-      <div class="food-card" data-id="${item.id}">
-        <div class="food-card-left">
-          <div class="food-name">${escapeHtml(item.food_name)}</div>
-          <div class="food-portion">${escapeHtml(item.portion || '')} • <span class="text-muted">${item.time || ''}</span></div>
-          <div class="food-macros-tag">
-            <span class="tag-p">P: ${item.protein || 0}g</span>
-            <span class="tag-c">K: ${item.carbs || 0}g</span>
-            <span class="tag-f">L: ${item.fat || 0}g</span>
+    const groupedMeals = (typeof DashboardModule !== 'undefined' && DashboardModule.groupFoodLogs) 
+      ? DashboardModule.groupFoodLogs(filtered) 
+      : [{ items: filtered }];
+
+    container.innerHTML = groupedMeals.map(group => {
+      if (group.items.length > 1) {
+        let groupCal = 0, groupPro = 0, groupCarbs = 0, groupFat = 0;
+        group.items.forEach(it => {
+          groupCal += Number(it.calories || 0);
+          groupPro += Number(it.protein || 0);
+          groupCarbs += Number(it.carbs || 0);
+          groupFat += Number(it.fat || 0);
+        });
+
+        return `
+          <div class="meal-group-card" id="hist-group-${group.groupId}">
+            <div class="meal-group-header" onclick="DashboardModule.toggleMealGroup(this.parentElement)">
+              <div class="meal-group-main-info">
+                <div class="meal-group-title-row">
+                  <span class="meal-group-title">🍱 ${escapeHtml(group.mealGroup)}</span>
+                  <span class="meal-group-badge-count">${group.items.length} Komponen</span>
+                </div>
+                <div class="meal-group-time-tag">
+                  <span>${group.time || ''}</span> • 
+                  <span class="tag-p">P:${groupPro}g</span> <span class="tag-c">K:${groupCarbs}g</span> <span class="tag-f">L:${groupFat}g</span>
+                </div>
+              </div>
+              <div class="meal-group-summary-right">
+                <div class="meal-group-total-cal">
+                  <strong>${groupCal}</strong>
+                  <small>kkal total</small>
+                </div>
+                <div class="meal-group-expand-icon">▾</div>
+              </div>
+            </div>
+
+            <!-- Rincian Komponen Bahan (Accordion) -->
+            <div class="meal-group-content">
+              <div class="meal-subitems-list">
+                ${group.items.map(item => `
+                  <div class="meal-subitem-row" data-id="${item.id}">
+                    <div class="meal-subitem-info">
+                      <div class="meal-subitem-name">
+                        <span>•</span>
+                        <span>${escapeHtml(item.food_name)}</span>
+                      </div>
+                      <div class="meal-subitem-portion">${escapeHtml(item.portion || '')}</div>
+                      <div class="meal-subitem-macros">
+                        <span class="tag-p">P: ${item.protein || 0}g</span>
+                        <span class="tag-c">K: ${item.carbs || 0}g</span>
+                        <span class="tag-f">L: ${item.fat || 0}g</span>
+                      </div>
+                    </div>
+                    <div class="meal-subitem-right">
+                      <div class="meal-subitem-cal">
+                        ${item.calories || 0} <small class="text-muted">kkal</small>
+                      </div>
+                      <div class="food-actions">
+                        <button class="icon-btn" title="Edit" onclick="event.stopPropagation(); FoodModule.openEditModal('${item.id}')">✏️</button>
+                        <button class="icon-btn" title="Hapus Item Ini" onclick="event.stopPropagation(); FoodModule.deleteFoodItem('${item.id}')">🗑️</button>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="meal-group-footer">
+                <span class="text-muted text-sm">${group.items.length} item dalam paket ini</span>
+                <button class="btn-delete-group" onclick="FoodModule.deleteMealGroup('${group.groupId}', '${escapeHtml(group.mealGroup)}')">
+                  <span>🗑️ Hapus Seluruh Paket</span>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="food-card-right">
-          <div class="food-card-cal">
-            <strong>${item.calories || 0}</strong>
-            <small>kkal</small>
+        `;
+      } else {
+        const item = group.items[0];
+        return `
+          <div class="food-card" data-id="${item.id}">
+            <div class="food-card-left">
+              <div class="food-name">${escapeHtml(item.food_name)}</div>
+              <div class="food-portion">${escapeHtml(item.portion || '')} • <span class="text-muted">${item.time || ''}</span></div>
+              <div class="food-macros-tag">
+                <span class="tag-p">P: ${item.protein || 0}g</span>
+                <span class="tag-c">K: ${item.carbs || 0}g</span>
+                <span class="tag-f">L: ${item.fat || 0}g</span>
+              </div>
+            </div>
+            <div class="food-card-right">
+              <div class="food-card-cal">
+                <strong>${item.calories || 0}</strong>
+                <small>kkal</small>
+              </div>
+              <div class="food-actions">
+                <button class="icon-btn" title="Edit" onclick="FoodModule.openEditModal('${item.id}')">✏️</button>
+                <button class="icon-btn" title="Hapus" onclick="FoodModule.deleteFoodItem('${item.id}')">🗑️</button>
+              </div>
+            </div>
           </div>
-          <div class="food-actions">
-            <button class="icon-btn" title="Edit" onclick="FoodModule.openEditModal('${item.id}')">✏️</button>
-            <button class="icon-btn" title="Hapus" onclick="FoodModule.deleteFoodItem('${item.id}')">🗑️</button>
-          </div>
-        </div>
-      </div>
-    `).join('');
+        `;
+      }
+    }).join('');
+  }
+
+  async function deleteMealGroup(groupId, groupName = 'Menu Paket') {
+    if (!confirm(`Apakah Anda yakin ingin menghapus seluruh paket "${groupName}"?`)) return;
+
+    App.showLoading("Menghapus paket menu...");
+    const res = await Api.request('deleteMealGroup', { groupId: groupId });
+    App.hideLoading();
+
+    if (res.success) {
+      App.showToast(`Paket "${groupName}" berhasil dihapus.`, "success");
+      await App.refreshAllData();
+    } else {
+      App.showToast(res.message || "Gagal menghapus paket menu.", "error");
+    }
   }
 
   function resetHistoryFilterToday() {
@@ -592,6 +690,7 @@ const FoodModule = (() => {
     openEditModal,
     closeEditModal,
     submitEditFood,
-    deleteFoodItem
+    deleteFoodItem,
+    deleteMealGroup
   };
 })();

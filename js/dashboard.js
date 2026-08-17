@@ -263,6 +263,28 @@ const DashboardModule = (() => {
     }
   }
 
+  function groupFoodLogs(logs) {
+    const groups = {};
+    const order = [];
+
+    logs.forEach(item => {
+      const gid = item.group_id || ('single_' + item.id);
+      if (!groups[gid]) {
+        groups[gid] = {
+          groupId: gid,
+          mealGroup: item.meal_group || item.food_name || 'Menu Makanan',
+          date: item.date,
+          time: item.time,
+          items: []
+        };
+        order.push(gid);
+      }
+      groups[gid].items.push(item);
+    });
+
+    return order.map(gid => groups[gid]);
+  }
+
   function renderTodayFoodList(logs) {
     const container = document.getElementById('dashboard-food-list');
     const countEl = document.getElementById('today-item-count');
@@ -280,29 +302,114 @@ const DashboardModule = (() => {
       return;
     }
 
-    container.innerHTML = logs.map(item => `
-      <div class="food-card" data-id="${item.id}">
-        <div class="food-card-left">
-          <div class="food-name">${escapeHtml(item.food_name)}</div>
-          <div class="food-portion">${escapeHtml(item.portion || '')} • <span class="text-muted">${item.time || ''}</span></div>
-          <div class="food-macros-tag">
-            <span class="tag-p">P: ${item.protein || 0}g</span>
-            <span class="tag-c">K: ${item.carbs || 0}g</span>
-            <span class="tag-f">L: ${item.fat || 0}g</span>
+    const groupedMeals = groupFoodLogs(logs);
+
+    container.innerHTML = groupedMeals.map(group => {
+      // Jika makanan majemuk (terdiri dari 2 item atau lebih yang dimakan bersamaan)
+      if (group.items.length > 1) {
+        let groupCal = 0, groupPro = 0, groupCarbs = 0, groupFat = 0;
+        group.items.forEach(it => {
+          groupCal += Number(it.calories || 0);
+          groupPro += Number(it.protein || 0);
+          groupCarbs += Number(it.carbs || 0);
+          groupFat += Number(it.fat || 0);
+        });
+
+        return `
+          <div class="meal-group-card" id="meal-group-${group.groupId}">
+            <div class="meal-group-header" onclick="DashboardModule.toggleMealGroup(this.parentElement)">
+              <div class="meal-group-main-info">
+                <div class="meal-group-title-row">
+                  <span class="meal-group-title">🍱 ${escapeHtml(group.mealGroup)}</span>
+                  <span class="meal-group-badge-count">${group.items.length} Komponen</span>
+                </div>
+                <div class="meal-group-time-tag">
+                  <span>${group.time || ''}</span> • 
+                  <span class="tag-p">P:${groupPro}g</span> <span class="tag-c">K:${groupCarbs}g</span> <span class="tag-f">L:${groupFat}g</span>
+                </div>
+              </div>
+              <div class="meal-group-summary-right">
+                <div class="meal-group-total-cal">
+                  <strong>${groupCal}</strong>
+                  <small>kkal total</small>
+                </div>
+                <div class="meal-group-expand-icon">▾</div>
+              </div>
+            </div>
+
+            <!-- Rincian Komponen Bahan (Accordion) -->
+            <div class="meal-group-content">
+              <div class="meal-subitems-list">
+                ${group.items.map(item => `
+                  <div class="meal-subitem-row" data-id="${item.id}">
+                    <div class="meal-subitem-info">
+                      <div class="meal-subitem-name">
+                        <span>•</span>
+                        <span>${escapeHtml(item.food_name)}</span>
+                      </div>
+                      <div class="meal-subitem-portion">${escapeHtml(item.portion || '')}</div>
+                      <div class="meal-subitem-macros">
+                        <span class="tag-p">P: ${item.protein || 0}g</span>
+                        <span class="tag-c">K: ${item.carbs || 0}g</span>
+                        <span class="tag-f">L: ${item.fat || 0}g</span>
+                      </div>
+                    </div>
+                    <div class="meal-subitem-right">
+                      <div class="meal-subitem-cal">
+                        ${item.calories || 0} <small class="text-muted">kkal</small>
+                      </div>
+                      <div class="food-actions">
+                        <button class="icon-btn" title="Edit" onclick="event.stopPropagation(); FoodModule.openEditModal('${item.id}')">✏️</button>
+                        <button class="icon-btn" title="Hapus Item Ini" onclick="event.stopPropagation(); FoodModule.deleteFoodItem('${item.id}')">🗑️</button>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="meal-group-footer">
+                <span class="text-muted text-sm">${group.items.length} item dalam paket ini</span>
+                <button class="btn-delete-group" onclick="FoodModule.deleteMealGroup('${group.groupId}', '${escapeHtml(group.mealGroup)}')">
+                  <span>🗑️ Hapus Seluruh Paket</span>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="food-card-right">
-          <div class="food-card-cal">
-            <strong>${item.calories || 0}</strong>
-            <small>kkal</small>
+        `;
+      } else {
+        // Makanan tunggal (1 item)
+        const item = group.items[0];
+        return `
+          <div class="food-card" data-id="${item.id}">
+            <div class="food-card-left">
+              <div class="food-name">${escapeHtml(item.food_name)}</div>
+              <div class="food-portion">${escapeHtml(item.portion || '')} • <span class="text-muted">${item.time || ''}</span></div>
+              <div class="food-macros-tag">
+                <span class="tag-p">P: ${item.protein || 0}g</span>
+                <span class="tag-c">K: ${item.carbs || 0}g</span>
+                <span class="tag-f">L: ${item.fat || 0}g</span>
+              </div>
+            </div>
+            <div class="food-card-right">
+              <div class="food-card-cal">
+                <strong>${item.calories || 0}</strong>
+                <small>kkal</small>
+              </div>
+              <div class="food-actions">
+                <button class="icon-btn" title="Edit" onclick="FoodModule.openEditModal('${item.id}')">✏️</button>
+                <button class="icon-btn" title="Hapus" onclick="FoodModule.deleteFoodItem('${item.id}')">🗑️</button>
+              </div>
+            </div>
           </div>
-          <div class="food-actions">
-            <button class="icon-btn" title="Edit" onclick="FoodModule.openEditModal('${item.id}')">✏️</button>
-            <button class="icon-btn" title="Hapus" onclick="FoodModule.deleteFoodItem('${item.id}')">🗑️</button>
-          </div>
-        </div>
-      </div>
-    `).join('');
+        `;
+      }
+    }).join('');
+  }
+
+  function toggleMealGroup(cardEl) {
+    if (typeof App !== 'undefined' && App.triggerHaptic) App.triggerHaptic(20);
+    if (cardEl) {
+      cardEl.classList.toggle('expanded');
+    }
   }
 
   function escapeHtml(text) {
@@ -315,6 +422,8 @@ const DashboardModule = (() => {
   return {
     render,
     setAiAdvice,
+    toggleMealGroup,
+    groupFoodLogs,
     getData: () => dashboardData
   };
 })();

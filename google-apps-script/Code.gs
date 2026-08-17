@@ -59,6 +59,9 @@ function handleRequest(e, method) {
       case 'deleteFood':
         result = deleteFoodLog(user, params.id);
         break;
+      case 'deleteMealGroup':
+        result = deleteMealGroupLog(user, params.groupId);
+        break;
       case 'getFoodLogs':
         result = getFoodLogs(user);
         break;
@@ -161,18 +164,20 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
 Tugasmu adalah menganalisis foto makanan dan/atau teks makanan/minuman yang dikonsumsi pengguna dan memperkirakan rincian nutrisinya secara akurat.
 
 ATURAN PENTING:
-1. Ekstrak setiap makanan atau minuman menjadi item terpisah dalam array "items".
-2. Tentukan perkiraan porsi (portion), kalori (calories dalam kkal), protein (dalam gram), karbohidrat (carbs dalam gram), lemak (fat dalam gram), dan serat (fiber dalam gram).
-3. Semua nilai makronutrisi HARUS berupa bilangan bulat (integer non-negatif).
-4. Berikan tingkat keyakinan (confidence): "high", "medium", atau "low".
-5. Hitung total seluruh nutrisi di object "total".
-6. Berikan catatan ringkas (note) dalam bahasa Indonesia.
-7. JANGAN menambahkan format markdown codeblock. Keluarkan HANYA string JSON valid murni sesuai format:
+1. Tentukan nama paket / kelompok hidangan utama di properti "meal_group" (Contoh: "Nasi Padang Rendang", "Sarapan Oatmeal & Buah", "Bento Ayam Teriyaki", atau nama menu jika tunggal).
+2. Ekstrak setiap komponen makanan atau minuman menjadi item terpisah dalam array "items" (misal: Nasi Putih, Rendang Daging, Sayur Nangka, Kuah Gulai).
+3. Tentukan perkiraan porsi (portion), kalori (calories dalam kkal), protein (dalam gram), karbohidrat (carbs dalam gram), lemak (fat dalam gram), dan serat (fiber dalam gram).
+4. Semua nilai makronutrisi HARUS berupa bilangan bulat (integer non-negatif).
+5. Berikan tingkat keyakinan (confidence): "high", "medium", atau "low".
+6. Hitung total seluruh nutrisi di object "total".
+7. Berikan catatan ringkas (note) dalam bahasa Indonesia.
+8. JANGAN menambahkan format markdown codeblock. Keluarkan HANYA string JSON valid murni sesuai format:
 {
+  "meal_group": "Nama Hidangan Utama (misal: Nasi Padang Rendang)",
   "items": [
     {
-      "food_name": "Nama Makanan",
-      "portion": "1 porsi",
+      "food_name": "Nama Komponen Makanan",
+      "portion": "1 porsi / 150g",
       "calories": 250,
       "protein": 15,
       "carbs": 30,
@@ -214,7 +219,7 @@ Makanan yang harus dianalisis: ${foodText || "Identifikasi dan analisis makanan 
     ],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 800,
+      maxOutputTokens: 900,
       responseMimeType: "application/json"
     }
   };
@@ -246,13 +251,20 @@ Makanan yang harus dianalisis: ${foodText || "Identifikasi dan analisis makanan 
             rawText = rawText.replace(/^\`\`\`json\s*/i, '').replace(/^\`\`\`\s*/i, '').replace(/\`\`\`\s*$/i, '').trim();
             const parsedData = JSON.parse(rawText);
 
+            const generatedGroupId = 'grp_' + Utilities.getUuid().substring(0, 8);
+            const mainGroupName = parsedData.meal_group || (parsedData.items && parsedData.items.length === 1 ? parsedData.items[0].food_name : 'Menu Komposit');
+
             if (parsedData.items && Array.isArray(parsedData.items)) {
               parsedData.items.forEach(item => {
                 item.date = today;
                 item.time = nowTime;
                 item.source = imageBase64 ? 'gemini_vision' : 'gemini_text';
+                item.meal_group = mainGroupName;
+                item.group_id = generatedGroupId;
               });
             }
+            parsedData.meal_group = mainGroupName;
+            parsedData.group_id = generatedGroupId;
 
             return parsedData;
           }
@@ -316,7 +328,7 @@ function ensureSheetsInitialized() {
   const ss = getSpreadsheet();
   const schemas = [
     { name: SHEET_USERS, headers: ['user_id', 'email', 'name', 'created_at'] },
-    { name: SHEET_FOOD_LOGS, headers: ['id', 'user_id', 'date', 'time', 'food_name', 'portion', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'source', 'created_at'] },
+    { name: SHEET_FOOD_LOGS, headers: ['id', 'user_id', 'date', 'time', 'food_name', 'portion', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'source', 'created_at', 'meal_group', 'group_id'] },
     { name: SHEET_WEIGHT_LOGS, headers: ['id', 'user_id', 'date', 'weight', 'note', 'created_at'] },
     { name: SHEET_SETTINGS, headers: ['user_id', 'calorie_target', 'protein_target', 'carbs_target', 'fat_target'] }
   ];
@@ -369,6 +381,7 @@ function saveFoodLogs(user, items) {
   const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_FOOD_LOGS);
   const now = new Date().toISOString();
+  const fallbackGroupId = 'grp_' + Utilities.getUuid().substring(0, 8);
   const rows = items.map(item => [
     'food_' + Utilities.getUuid(),
     user.user_id,
@@ -382,7 +395,9 @@ function saveFoodLogs(user, items) {
     Number(item.fat) || 0,
     Number(item.fiber) || 0,
     item.source || 'gemini_ai',
-    now
+    now,
+    item.meal_group || item.food_name || 'Menu Makanan',
+    item.group_id || fallbackGroupId
   ]);
   sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
 
@@ -540,7 +555,9 @@ function getFoodLogs(user) {
         fat: Number(data[i][9]) || 0,
         fiber: Number(data[i][10]) || 0,
         source: data[i][11],
-        created_at: data[i][12]
+        created_at: data[i][12],
+        meal_group: String(data[i][13] || data[i][4] || 'Menu Makanan'),
+        group_id: String(data[i][14] || ('grp_' + String(data[i][0])))
       });
     }
   }
@@ -561,6 +578,7 @@ function updateFoodLog(user, food) {
       sheet.getRange(row, 8).setValue(Number(food.protein) || 0);
       sheet.getRange(row, 9).setValue(Number(food.carbs) || 0);
       sheet.getRange(row, 10).setValue(Number(food.fat) || 0);
+      if (food.meal_group) sheet.getRange(row, 14).setValue(food.meal_group);
       return { success: true };
     }
   }
@@ -578,6 +596,32 @@ function deleteFoodLog(user, foodId) {
     }
   }
   throw new Error('Data tidak ditemukan.');
+}
+
+function deleteMealGroupLog(user, groupId) {
+  if (!groupId) throw new Error('Group ID tidak valid.');
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_FOOD_LOGS);
+  const data = sheet.getDataRange().getValues();
+  let deletedCount = 0;
+
+  // Hapus dari baris bawah ke atas agar indeks baris tidak bergeser
+  for (let i = data.length - 1; i >= 1; i--) {
+    const rowUserId = String(data[i][1]);
+    const rowGroupId = String(data[i][14] || '');
+    const rowFoodId = String(data[i][0]);
+
+    if (rowUserId === String(user.user_id) && (rowGroupId === groupId || rowFoodId === groupId)) {
+      sheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  if (deletedCount === 0) {
+    throw new Error('Grup makanan tidak ditemukan.');
+  }
+
+  return { success: true, deletedCount: deletedCount };
 }
 
 function saveWeightLog(user, date, weight, note) {

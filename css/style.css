@@ -2113,3 +2113,107 @@ body {
   color: #fff;
 }
 
+/* ==========================================================
+   7-DAY CALORIE TREND VS TARGET CHART
+   ========================================================== */
+.calorie-trend-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+.calorie-trend-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-md);
+}
+[data-theme="dark"] .calorie-trend-card {
+  background: #141f36;
+  border-color: #24344d;
+}
+.calorie-trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.calorie-trend-title-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.calorie-trend-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.calorie-trend-badge {
+  background: #f1f5f9;
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
+  color: var(--text-main);
+}
+.calorie-trend-badge strong,
+.calorie-trend-badge span {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+[data-theme="dark"] .calorie-trend-badge {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+[data-theme="dark"] .calorie-trend-badge strong,
+[data-theme="dark"] .calorie-trend-badge span {
+  color: #34d399;
+}
+.calorie-chart-container {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+.calorie-chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+[data-theme="dark"] .calorie-chart-legend {
+  border-color: #24344d;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.legend-dot.dot-ontrack {
+  background: #10b981;
+}
+.legend-dot.dot-over {
+  background: #f43f5e;
+}
+.legend-line.line-target {
+  width: 14px;
+  height: 0;
+  border-top: 2.5px dashed #f59e0b;
+  display: inline-block;
+}
+
+

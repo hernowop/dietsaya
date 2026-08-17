@@ -73,6 +73,11 @@ const App = (() => {
       if (moonIcon) moonIcon.classList.remove('hidden');
       if (sunIcon) sunIcon.classList.add('hidden');
     }
+
+    // Refresh chart theme colors jika chart sedang aktif
+    if (typeof DashboardModule !== 'undefined' && DashboardModule.renderCalorieTrendChart) {
+      setTimeout(() => DashboardModule.renderCalorieTrendChart(), 50);
+    }
   }
 
   function toggleTheme() {

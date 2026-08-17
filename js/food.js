@@ -865,6 +865,7 @@ const FoodModule = (() => {
     closeEditModal,
     submitEditFood,
     deleteFoodItem,
-    deleteMealGroup
+    deleteMealGroup,
+    getAllLogs: () => allFoodLogs
   };
 })();

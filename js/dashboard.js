@@ -151,6 +151,174 @@ const DashboardModule = (() => {
 
     // Update Today's Food List
     renderTodayFoodList(logs);
+
+    // Update 7-Day Calorie Trend vs Target Chart
+    renderCalorieTrendChart(targetCal);
+  }
+
+  /**
+   * Render Grafik Tren Kalori 7 Hari vs Target (Combo Bar + Line Chart)
+   */
+  let calorieChartInstance = null;
+
+  function renderCalorieTrendChart(targetCal) {
+    const canvas = document.getElementById('calorieTrendChart');
+    if (!canvas) return;
+
+    // Ambil semua data riwayat makanan
+    const allLogs = (typeof FoodModule !== 'undefined' && FoodModule.getAllLogs) 
+      ? FoodModule.getAllLogs() 
+      : (dashboardData.todayLogs || []);
+
+    const target = targetCal || Number(dashboardData.settings?.calorie_target || 2000);
+
+    // Siapkan array 7 hari (dari 6 hari yang lalu s.d. hari ini)
+    const days = [];
+    const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const label = i === 0 ? 'Hari Ini' : `${dayNames[d.getDay()]} ${d.getDate()}`;
+      days.push({
+        dateStr,
+        label,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      });
+    }
+
+    // Akumulasi kalori per tanggal dari seluruh catatan makanan
+    allLogs.forEach(item => {
+      const logDate = item.date;
+      const targetDay = days.find(d => d.dateStr === logDate);
+      if (targetDay) {
+        targetDay.calories += Number(item.calories || 0);
+        targetDay.protein += Number(item.protein || 0);
+        targetDay.carbs += Number(item.carbs || 0);
+        targetDay.fat += Number(item.fat || 0);
+      }
+    });
+
+    // Hitung rata-rata kalori hari aktif
+    const activeDays = days.filter(d => d.calories > 0);
+    const totalCal = days.reduce((acc, cur) => acc + cur.calories, 0);
+    const avgCal = activeDays.length > 0 ? Math.round(totalCal / activeDays.length) : 0;
+
+    const avgEl = document.getElementById('calorie-avg-val');
+    if (avgEl) avgEl.textContent = avgCal.toLocaleString('id-ID');
+
+    // Data untuk Chart.js
+    const barLabels = days.map(d => d.label);
+    const barData = days.map(d => d.calories);
+    const targetLineData = days.map(() => target);
+
+    // Smart Bar Colors: Hijau jika <= target, Merah jika > target, Abu transparan jika 0
+    const barColors = days.map(d => {
+      if (d.calories === 0) return 'rgba(148, 163, 184, 0.35)';
+      if (d.calories <= target) return '#10b981'; // Emerald (On Track)
+      return '#f43f5e'; // Rose / Coral (Over Target)
+    });
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+
+    if (calorieChartInstance) {
+      calorieChartInstance.destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    calorieChartInstance = new Chart(ctx, {
+      data: {
+        labels: barLabels,
+        datasets: [
+          {
+            type: 'line',
+            label: 'Target Harian',
+            data: targetLineData,
+            borderColor: '#f59e0b',
+            borderWidth: 2.2,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#f59e0b',
+            fill: false,
+            order: 1
+          },
+          {
+            type: 'bar',
+            label: 'Asupan Kalori',
+            data: barData,
+            backgroundColor: barColors,
+            borderRadius: 6,
+            barThickness: 22,
+            maxBarThickness: 28,
+            order: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 450 },
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: isDark ? '#1e293b' : '#0f172a',
+            titleColor: '#f8fafc',
+            bodyColor: '#e2e8f0',
+            borderColor: isDark ? '#334155' : '#475569',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                return `${days[idx].label} (${days[idx].dateStr})`;
+              },
+              label: (context) => {
+                if (context.dataset.type === 'line') {
+                  return ` 🎯 Target: ${context.raw.toLocaleString('id-ID')} kkal`;
+                }
+                const cal = context.raw;
+                if (cal === 0) return ' 🍽️ Asupan: 0 kkal (Belum ada catatan)';
+                const diff = cal - target;
+                const note = diff <= 0 ? `Defisit ${Math.abs(diff)} kkal ✨` : `Surplus +${diff} kkal ⚠️`;
+                return ` 🍽️ Asupan: ${cal.toLocaleString('id-ID')} kkal (${note})`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: textColor,
+              font: { size: 11, weight: '600' }
+            }
+          },
+          y: {
+            beginAtZero: true,
+            suggestedMax: Math.max(target * 1.2, ...barData) * 1.1,
+            grid: { color: gridColor },
+            ticks: {
+              color: textColor,
+              font: { size: 10 },
+              callback: (val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val
+            }
+          }
+        }
+      }
+    });
   }
 
   /**
@@ -424,6 +592,7 @@ const DashboardModule = (() => {
     setAiAdvice,
     toggleMealGroup,
     groupFoodLogs,
+    renderCalorieTrendChart,
     getData: () => dashboardData
   };
 })();

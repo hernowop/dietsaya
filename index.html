@@ -29,7 +29,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
 
@@ -191,6 +191,31 @@
             <div class="macro-bar">
               <div id="macro-fat-bar" class="bar-fill fill-fat" style="width: 0%;"></div>
             </div>
+          </div>
+        </div>
+
+        <!-- 7-Day Calorie Trend vs Daily Target Chart -->
+        <div class="card calorie-trend-card mt-3" id="calorie-trend-section">
+          <div class="calorie-trend-header">
+            <div class="calorie-trend-title-wrap">
+              <span class="calorie-trend-title">📊 Tren Kalori vs Target</span>
+              <small class="text-muted" id="calorie-trend-subtitle">7 Hari Terakhir</small>
+            </div>
+            <div class="calorie-trend-badge" id="calorie-trend-badge">
+              <span id="calorie-avg-val">0</span> <small>kkal/hari rata-rata</small>
+            </div>
+          </div>
+
+          <!-- Chart Container -->
+          <div class="calorie-chart-container">
+            <canvas id="calorieTrendChart"></canvas>
+          </div>
+
+          <!-- Interactive Legend -->
+          <div class="calorie-chart-legend">
+            <div class="legend-item"><span class="legend-dot dot-ontrack"></span> Sesuai Target</div>
+            <div class="legend-item"><span class="legend-dot dot-over"></span> Over Target</div>
+            <div class="legend-item"><span class="legend-line line-target"></span> Garis Target</div>
           </div>
         </div>
 
@@ -742,13 +767,13 @@
   </div>
 
   <!-- Application Scripts -->
-  <script src="js/api.js?v=6"></script>
-  <script src="js/auth.js?v=6"></script>
-  <script src="js/dashboard.js?v=6"></script>
-  <script src="js/food.js?v=6"></script>
-  <script src="js/weight.js?v=6"></script>
-  <script src="js/love.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/api.js?v=7"></script>
+  <script src="js/auth.js?v=7"></script>
+  <script src="js/dashboard.js?v=7"></script>
+  <script src="js/food.js?v=7"></script>
+  <script src="js/weight.js?v=7"></script>
+  <script src="js/love.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 
   <script>
     if ('serviceWorker' in navigator) {

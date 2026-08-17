@@ -29,7 +29,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
 
@@ -191,41 +191,6 @@
             <div class="macro-bar">
               <div id="macro-fat-bar" class="bar-fill fill-fat" style="width: 0%;"></div>
             </div>
-          </div>
-        </div>
-
-        <!-- Interactive Water Tracker Widget -->
-        <div class="card water-tracker-card" id="water-tracker-widget">
-          <div class="water-tracker-header">
-            <div class="water-tracker-title">
-              <span>💧</span>
-              <span>Air Minum Harian</span>
-            </div>
-            <div class="water-tracker-stats">
-              <span id="water-current-ml">0</span> / <span id="water-target-ml">2000</span> ml
-              <small class="text-muted" style="margin-left: 4px;">(<span id="water-glasses-count">0</span>/8 Gelas)</small>
-            </div>
-          </div>
-
-          <!-- 8 Interactive Glass Buttons -->
-          <div class="water-glasses-grid" id="water-glasses-grid">
-            <button type="button" class="water-glass-btn" data-index="1" onclick="DashboardModule.toggleWaterGlass(1)" title="Gelas 1 (250ml)">🥛</button>
-            <button type="button" class="water-glass-btn" data-index="2" onclick="DashboardModule.toggleWaterGlass(2)" title="Gelas 2 (500ml)">🥛</button>
-            <button type="button" class="water-glass-btn" data-index="3" onclick="DashboardModule.toggleWaterGlass(3)" title="Gelas 3 (750ml)">🥛</button>
-            <button type="button" class="water-glass-btn" data-index="4" onclick="DashboardModule.toggleWaterGlass(4)" title="Gelas 4 (1000ml)">🥛</button>
-            <button type="button" class="water-glass-btn" data-index="5" onclick="DashboardModule.toggleWaterGlass(5)" title="Gelas 5 (1250ml)">🥛</button>
-            <button type="button" class="water-glass-btn" data-index="6" onclick="DashboardModule.toggleWaterGlass(6)" title="Gelas 6 (1500ml)">🥛</button>
-            <button type="button" class="water-glass-btn" data-index="7" onclick="DashboardModule.toggleWaterGlass(7)" title="Gelas 7 (1750ml)">🥛</button>
-            <button type="button" class="water-glass-btn" data-index="8" onclick="DashboardModule.toggleWaterGlass(8)" title="Gelas 8 (2000ml)">🥛</button>
-          </div>
-
-          <div class="water-actions">
-            <button type="button" class="btn-water" onclick="DashboardModule.adjustWater(-250)">
-              <span>- 250 ml</span>
-            </button>
-            <button type="button" class="btn-water" onclick="DashboardModule.adjustWater(250)">
-              <span>+ 250 ml (1 Gelas)</span>
-            </button>
           </div>
         </div>
 
@@ -799,13 +764,13 @@
   </div>
 
   <!-- Application Scripts -->
-  <script src="js/api.js?v=3"></script>
-  <script src="js/auth.js?v=3"></script>
-  <script src="js/dashboard.js?v=3"></script>
-  <script src="js/food.js?v=3"></script>
-  <script src="js/weight.js?v=3"></script>
-  <script src="js/love.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/api.js?v=4"></script>
+  <script src="js/auth.js?v=4"></script>
+  <script src="js/dashboard.js?v=4"></script>
+  <script src="js/food.js?v=4"></script>
+  <script src="js/weight.js?v=4"></script>
+  <script src="js/love.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 
   <script>
     if ('serviceWorker' in navigator) {

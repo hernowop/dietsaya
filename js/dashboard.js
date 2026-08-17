@@ -312,95 +312,9 @@ const DashboardModule = (() => {
     });
   }
 
-  /* ==========================================================
-     WATER INTAKE TRACKER
-     ========================================================== */
-  let currentWaterMl = 0;
-  const TARGET_WATER_ML = 2000;
-  const GLASS_SIZE_ML = 250;
-
-  function getTodayKey() {
-    const d = new Date();
-    return `dietsaya_water_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-
-  function initWaterTracker() {
-    try {
-      const key = getTodayKey();
-      const saved = localStorage.getItem(key);
-      currentWaterMl = saved ? parseInt(saved) || 0 : 0;
-    } catch (e) {
-      currentWaterMl = 0;
-    }
-    renderWaterTracker();
-  }
-
-  function renderWaterTracker() {
-    const curMlEl = document.getElementById('water-current-ml');
-    const targetMlEl = document.getElementById('water-target-ml');
-    const glassesCountEl = document.getElementById('water-glasses-count');
-    const glassesGrid = document.getElementById('water-glasses-grid');
-
-    if (curMlEl) curMlEl.textContent = currentWaterMl;
-    if (targetMlEl) targetMlEl.textContent = TARGET_WATER_ML;
-    
-    const filledGlasses = Math.min(8, Math.floor(currentWaterMl / GLASS_SIZE_ML));
-    if (glassesCountEl) glassesCountEl.textContent = filledGlasses;
-
-    if (glassesGrid) {
-      const buttons = glassesGrid.querySelectorAll('.water-glass-btn');
-      buttons.forEach((btn, index) => {
-        const glassIndex = index + 1;
-        if (glassIndex <= filledGlasses) {
-          btn.classList.add('filled');
-          btn.textContent = '💧';
-        } else {
-          btn.classList.remove('filled');
-          btn.textContent = '🥛';
-        }
-      });
-    }
-  }
-
-  function saveWaterTracker() {
-    try {
-      localStorage.setItem(getTodayKey(), currentWaterMl);
-    } catch (e) {}
-    renderWaterTracker();
-  }
-
-  function toggleWaterGlass(glassNumber) {
-    if (typeof App !== 'undefined' && App.triggerHaptic) App.triggerHaptic(40);
-    const targetMl = glassNumber * GLASS_SIZE_ML;
-    if (currentWaterMl === targetMl) {
-      currentWaterMl = (glassNumber - 1) * GLASS_SIZE_ML;
-    } else {
-      currentWaterMl = targetMl;
-    }
-    saveWaterTracker();
-    checkWaterGoal();
-  }
-
-  function adjustWater(delta) {
-    if (typeof App !== 'undefined' && App.triggerHaptic) App.triggerHaptic(40);
-    currentWaterMl = Math.max(0, Math.min(4000, currentWaterMl + delta));
-    saveWaterTracker();
-    checkWaterGoal();
-  }
-
-  function checkWaterGoal() {
-    if (currentWaterMl === TARGET_WATER_ML && typeof App !== 'undefined' && App.showToast) {
-      App.showToast("🎉 Hebat! Target minum air 2000 ml hari ini tercapai!", "success");
-      if (App.triggerHaptic) App.triggerHaptic(80);
-    }
-  }
-
   return {
     render,
     setAiAdvice,
-    initWaterTracker,
-    toggleWaterGlass,
-    adjustWater,
     getData: () => dashboardData
   };
 })();

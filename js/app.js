@@ -25,11 +25,6 @@ const App = (() => {
     WeightModule.init();
     AuthModule.init();
 
-    // Inisialisasi Water Tracker di Dashboard
-    if (typeof DashboardModule !== 'undefined' && DashboardModule.initWaterTracker) {
-      DashboardModule.initWaterTracker();
-    }
-
     // Event listener quick sync
     const syncBtn = document.getElementById('btn-quick-sync');
     if (syncBtn) {
@@ -185,10 +180,6 @@ const App = (() => {
     }
     if (initData.weightLogs) {
       WeightModule.setWeightLogs(initData.weightLogs);
-    }
-
-    if (typeof DashboardModule !== 'undefined' && DashboardModule.initWaterTracker) {
-      DashboardModule.initWaterTracker();
     }
 
     navigate('dashboard');

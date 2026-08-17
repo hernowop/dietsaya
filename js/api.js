@@ -5,7 +5,7 @@
 
 const Api = (() => {
   // Ganti URL ini dengan URL Google Apps Script Web App hasil deploy Anda
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfUmLQdpOjreQScyKMf-ubqoXqbxtIhkzNHprrbnZyT2fR5iacaCMqj3yXSuccWgul/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyssH7nG0wB0xziSHCDIwBad0kYyb0B4IOEG_Bbn_4D2KQ2mydzYE37yLy5aUwh_Uw/exec";
 
   /**
    * Mengirim request ke Apps Script Web App

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DietSaya - API Client Layer
  * Berkomunikasi dengan Google Apps Script Web App Backend secara realtime & persistent.
  */
@@ -57,10 +57,14 @@ const Api = (() => {
       return result;
     } catch (error) {
       console.error(`[API Error - ${action}]:`, error);
+      let errorMsg = error.message;
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        errorMsg = 'Gagal terhubung ke Google Apps Script (Failed to fetch). Pastikan Web App sudah dideploy dengan akses "Anyone" (Siapa saja) dan URL di js/api.js sudah sesuai.';
+      }
       return {
         success: false,
         data: null,
-        message: error.message || 'Gagal terhubung ke server backend Apps Script.'
+        message: errorMsg || 'Gagal terhubung ke server backend Apps Script.'
       };
     }
   }

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DietSaya — Backend Google Apps Script (Web App API)
  * Mendukung Multimodal Vision (Teks + Foto Makanan Kamera/Galeri) & Persistent Session
  */
@@ -146,11 +146,14 @@ function analyzeFoodWithGemini(foodText, imageBase64, imageMimeType, mealDate, m
   const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties Google Apps Script.');
 
-  // Daftar model resmi Google Gemini yang aktif & stabil
+  // Daftar model resmi Google Gemini yang aktif & stabil (mencakup Flash 2.5, 2.0, 1.5, dan versi terbaru)
   const candidateModels = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
     'gemini-3.5-flash-lite',
     'gemini-3.5-flash',
-    'gemini-3.6-flash',
     'gemini-3.7-flash'
   ];
 
@@ -677,3 +680,42 @@ function formatDateString(val) {
   if (val instanceof Date) return Utilities.formatDate(val, 'GMT+7', 'yyyy-MM-dd');
   return String(val || '');
 }
+
+/**
+ * Fungsi Pengujian Mandiri (Jalankan langsung di Editor Apps Script)
+ * Pilih fungsi 'testRun' di dropdown atas, lalu klik tombol 'Jalankan' / 'Run'.
+ */
+function testRun() {
+  console.log('=== MEMULAI TEST BACKEND DIETSAYA ===');
+  
+  // 1. Cek Spreadsheet
+  try {
+    const ss = getSpreadsheet();
+    ensureSheetsInitialized();
+    console.log('✅ Spreadsheet Berhasil Terhubung: ' + ss.getUrl());
+  } catch (err) {
+    console.error('❌ Gagal Inisialisasi Spreadsheet:', err.message);
+  }
+
+  // 2. Cek Script Properties
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const allowedEmail = scriptProperties.getProperty('ALLOWED_EMAIL');
+  const apiKey = scriptProperties.getProperty('GEMINI_API_KEY');
+  
+  console.log('ALLOWED_EMAIL:', allowedEmail || '(Belum diset - semua email diperbolehkan jika kosong)');
+  console.log('GEMINI_API_KEY:', apiKey ? '✅ Terpasang (' + apiKey.substring(0, 6) + '...)' : '❌ BELUM DISET di Script Properties');
+
+  // 3. Test Gemini API jika key terpasang
+  if (apiKey) {
+    try {
+      console.log('Menguji koneksi Gemini AI...');
+      const testResult = analyzeFoodWithGemini('1 butir telur rebus dan 1 buah pisang', null, null);
+      console.log('✅ Gemini AI Berhasil Merespon:', JSON.stringify(testResult));
+    } catch (err) {
+      console.error('❌ Gemini AI Test Error:', err.message);
+    }
+  }
+
+  console.log('=== PENGUJIAN SELESAI ===');
+}
+

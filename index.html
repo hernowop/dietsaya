@@ -29,7 +29,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -287,41 +287,19 @@
           </button>
         </div>
 
-        <!-- Quick Food Presets (1-Click Instant Add) -->
+        <!-- Quick Food Presets (AI & History-Driven Recommendations) -->
         <div class="quick-presets-section">
           <div class="quick-presets-header">
-            <span class="quick-presets-title">⚡ Pilihan Cepat / Favorit</span>
-            <small class="text-muted">Klik untuk input instan</small>
+            <div class="quick-presets-title-wrap">
+              <span class="quick-presets-title" id="smart-presets-title">✨ Rekomendasi Cerdas AI & Favorit</span>
+              <small class="text-muted" id="smart-presets-subtitle">Berdasarkan riwayat makan & waktu saat ini</small>
+            </div>
+            <button type="button" class="btn-refresh-presets" onclick="FoodModule.refreshSmartPresets()" title="Perbarui Saran Menu">
+              <span>🔄</span>
+            </button>
           </div>
-          <div class="quick-presets-grid">
-            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('2 Telur Rebus', '2 butir', 155, 13, 1, 11)">
-              <span class="preset-icon">🥚</span>
-              <div class="preset-info">
-                <span class="preset-name">2 Telur Rebus</span>
-                <span class="preset-macros">155 kkal • 13g P</span>
-              </div>
-            </button>
-            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('Nasi Putih 1 Porsi', '1 piring / 150g', 195, 4, 43, 0)">
-              <span class="preset-icon">🍚</span>
-              <div class="preset-info">
-                <span class="preset-name">Nasi Putih 150g</span>
-                <span class="preset-macros">195 kkal • 43g K</span>
-              </div>
-            </button>
-            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('Dada Ayam Panggang', '1 potong / 150g', 248, 46, 0, 5)">
-              <span class="preset-icon">🍗</span>
-              <div class="preset-info">
-                <span class="preset-name">Dada Ayam 150g</span>
-                <span class="preset-macros">248 kkal • 46g P</span>
-              </div>
-            </button>
-            <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('Pisang Cavendish Segar', '1 buah sedang', 105, 1, 27, 0)">
-              <span class="preset-icon">🍌</span>
-              <div class="preset-info">
-                <span class="preset-name">Pisang Segar</span>
-                <span class="preset-macros">105 kkal • 27g K</span>
-              </div>
-            </button>
+          <div class="quick-presets-grid" id="quick-presets-grid">
+            <!-- Populated dynamically by FoodModule.renderSmartPresets() -->
           </div>
         </div>
 
@@ -764,13 +742,13 @@
   </div>
 
   <!-- Application Scripts -->
-  <script src="js/api.js?v=5"></script>
-  <script src="js/auth.js?v=5"></script>
-  <script src="js/dashboard.js?v=5"></script>
-  <script src="js/food.js?v=5"></script>
-  <script src="js/weight.js?v=5"></script>
-  <script src="js/love.js?v=5"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/api.js?v=6"></script>
+  <script src="js/auth.js?v=6"></script>
+  <script src="js/dashboard.js?v=6"></script>
+  <script src="js/food.js?v=6"></script>
+  <script src="js/weight.js?v=6"></script>
+  <script src="js/love.js?v=6"></script>
+  <script src="js/app.js?v=6"></script>
 
   <script>
     if ('serviceWorker' in navigator) {

@@ -154,6 +154,10 @@ const App = (() => {
     // Refresh sub-tampilan jika diperlukan
     if (tabName === 'riwayat') {
       FoodModule.filterHistoryByDate();
+    } else if (tabName === 'makan') {
+      if (typeof FoodModule !== 'undefined' && FoodModule.renderSmartPresets) {
+        FoodModule.renderSmartPresets();
+      }
     } else if (tabName === 'dashboard') {
       refreshAllData().catch(e => console.log('Dashboard tab sync:', e));
     }

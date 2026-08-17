@@ -22,6 +22,8 @@ const FoodModule = (() => {
     if (timeInput) timeInput.value = nowTime;
 
     if (filterHistInput) filterHistInput.value = today;
+
+    renderSmartPresets();
   }
 
   function switchMode(mode) {
@@ -404,6 +406,7 @@ const FoodModule = (() => {
   function setFoodLogs(logs) {
     allFoodLogs = logs || [];
     filterHistoryByDate();
+    renderSmartPresets();
   }
 
   function filterHistoryByDate() {
@@ -641,6 +644,175 @@ const FoodModule = (() => {
     });
   }
 
+  /* ==========================================================
+     AI & HISTORY-DRIVEN SMART QUICK PRESETS
+     ========================================================== */
+  function getCurrentMealContext() {
+    const hour = new Date().getHours();
+    if (hour >= 4 && hour < 11) {
+      return { slot: 'breakfast', name: 'Sarapan', subtitle: 'Rekomendasi sarapan favorit & bernutrisi Anda', badgeText: 'Sarapan Favorit' };
+    } else if (hour >= 11 && hour < 15) {
+      return { slot: 'lunch', name: 'Makan Siang', subtitle: 'Rekomendasi makan siang berenergi Anda', badgeText: 'Makan Siang Favorit' };
+    } else if (hour >= 15 && hour < 18) {
+      return { slot: 'snack', name: 'Camilan Sore', subtitle: 'Rekomendasi camilan sehat & booster sore', badgeText: 'Camilan Sehat' };
+    } else {
+      return { slot: 'dinner', name: 'Makan Malam', subtitle: 'Rekomendasi makan malam nyaman & teratur', badgeText: 'Makan Malam Favorit' };
+    }
+  }
+
+  function detectFoodEmoji(name) {
+    if (!name) return '🍱';
+    const n = name.toLowerCase();
+    if (n.includes('telur') || n.includes('egg') || n.includes('omelet')) return '🥚';
+    if (n.includes('ayam') || n.includes('chicken') || n.includes('katsu') || n.includes('dada')) return '🍗';
+    if (n.includes('rendang') || n.includes('sapi') || n.includes('beef') || n.includes('daging') || n.includes('steak')) return '🥩';
+    if (n.includes('nasi') || n.includes('rice') || n.includes('padang') || n.includes('uduk') || n.includes('goreng')) return '🍚';
+    if (n.includes('pisang') || n.includes('banana')) return '🍌';
+    if (n.includes('apel') || n.includes('apple')) return '🍎';
+    if (n.includes('alpukat') || n.includes('avocado')) return '🥑';
+    if (n.includes('buah') || n.includes('salad') || n.includes('fruit')) return '🥗';
+    if (n.includes('soto') || n.includes('sop') || n.includes('soup') || n.includes('rawon') || n.includes('bakso') || n.includes('mie') || n.includes('noodle')) return '🍜';
+    if (n.includes('roti') || n.includes('bread') || n.includes('toast') || n.includes('sandwich')) return '🥪';
+    if (n.includes('kopi') || n.includes('coffee') || n.includes('latte')) return '☕';
+    if (n.includes('susu') || n.includes('milk') || n.includes('whey') || n.includes('protein')) return '🥛';
+    if (n.includes('ikan') || n.includes('fish') || n.includes('salmon') || n.includes('tuna')) return '🐟';
+    if (n.includes('tempe') || n.includes('tahu') || n.includes('tofu')) return '🥢';
+    if (n.includes('oat') || n.includes('havermut') || n.includes('cereal')) return '🥣';
+    return '🍱';
+  }
+
+  function getSmartRecommendationsFromHistory() {
+    const context = getCurrentMealContext();
+    const map = {};
+
+    // Kumpulkan makanan dari riwayat
+    allFoodLogs.forEach(item => {
+      // Kelompokkan berdasarkan meal_group jika ada dan valid, atau nama makanan
+      const key = (item.meal_group && item.meal_group !== 'Menu Makanan' && item.meal_group !== 'Menu Komposit') 
+        ? item.meal_group 
+        : item.food_name;
+
+      if (!key) return;
+
+      if (!map[key]) {
+        map[key] = {
+          name: key,
+          portion: item.portion || '1 porsi',
+          calories: Number(item.calories) || 0,
+          protein: Number(item.protein) || 0,
+          carbs: Number(item.carbs) || 0,
+          fat: Number(item.fat) || 0,
+          count: 0,
+          timeSlotMatch: 0,
+          lastDate: item.date || '',
+          source: 'history'
+        };
+      }
+
+      map[key].count++;
+
+      // Cek kecocokan jam makan riwayat dengan waktu saat ini
+      if (item.time) {
+        const h = parseInt(item.time.split(':')[0]) || 12;
+        if (context.slot === 'breakfast' && h >= 4 && h < 11) map[key].timeSlotMatch += 3;
+        else if (context.slot === 'lunch' && h >= 11 && h < 15) map[key].timeSlotMatch += 3;
+        else if (context.slot === 'snack' && h >= 15 && h < 18) map[key].timeSlotMatch += 3;
+        else if (context.slot === 'dinner' && (h >= 18 || h < 4)) map[key].timeSlotMatch += 3;
+      }
+    });
+
+    // Urutkan berdasarkan skor relevansi: (frekuensi * 2) + kecocokan slot jam makan
+    const sortedFromHistory = Object.values(map).sort((a, b) => {
+      const scoreA = (a.count * 2) + a.timeSlotMatch;
+      const scoreB = (b.count * 2) + b.timeSlotMatch;
+      return scoreB - scoreA;
+    });
+
+    // AI & Nutrisi Fallbacks cerdas
+    const fallbacks = [
+      { name: '2 Telur Rebus', portion: '2 butir', calories: 155, protein: 13, carbs: 1, fat: 11, source: 'ai', badge: 'Tinggi Protein' },
+      { name: 'Nasi Putih 150g', portion: '1 porsi (150g)', calories: 195, protein: 4, carbs: 43, fat: 0, source: 'ai', badge: 'Energi Karbo' },
+      { name: 'Dada Ayam Panggang', portion: '1 potong (150g)', calories: 248, protein: 46, carbs: 0, fat: 5, source: 'ai', badge: 'Tinggi Protein' },
+      { name: 'Pisang Cavendish', portion: '1 buah sedang', calories: 105, protein: 1, carbs: 27, fat: 0, source: 'ai', badge: 'Serat Alami' },
+      { name: 'Oatmeal & Susu', portion: '1 mangkok (40g oat)', calories: 220, protein: 9, carbs: 36, fat: 4, source: 'ai', badge: 'Kaya Serat' },
+      { name: 'Tempe & Tahu Bacem', portion: '2 potong sedang', calories: 180, protein: 14, carbs: 12, fat: 8, source: 'ai', badge: 'Nabati Sehat' }
+    ];
+
+    const result = [];
+    const usedNames = new Set();
+
+    // 1. Masukkan hasil riwayat yang relevan (maksimal 3-4 item)
+    for (const hItem of sortedFromHistory) {
+      if (result.length >= 4) break;
+      const lower = hItem.name.toLowerCase().trim();
+      if (!usedNames.has(lower)) {
+        usedNames.add(lower);
+        result.push({
+          ...hItem,
+          badge: hItem.timeSlotMatch > 0 ? context.badgeText : (hItem.count > 1 ? `${hItem.count}x Dicatat` : 'Dari Riwayat')
+        });
+      }
+    }
+
+    // 2. Lengkapi dengan fallback cerdas jika kurang dari 4
+    for (const fItem of fallbacks) {
+      if (result.length >= 4) break;
+      const lower = fItem.name.toLowerCase().trim();
+      if (!usedNames.has(lower)) {
+        usedNames.add(lower);
+        result.push(fItem);
+      }
+    }
+
+    return {
+      context,
+      items: result.slice(0, 4)
+    };
+  }
+
+  function renderSmartPresets() {
+    const grid = document.getElementById('quick-presets-grid');
+    const titleEl = document.getElementById('smart-presets-title');
+    const subtitleEl = document.getElementById('smart-presets-subtitle');
+    if (!grid) return;
+
+    const { context, items } = getSmartRecommendationsFromHistory();
+
+    if (titleEl) {
+      titleEl.innerHTML = `✨ Rekomendasi ${escapeHtml(context.name)} & Favorit`;
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = context.subtitle;
+    }
+
+    grid.innerHTML = items.map(item => {
+      const emoji = detectFoodEmoji(item.name);
+      const isHistory = item.source === 'history';
+      const badgeClass = isHistory ? 'tag-history' : 'tag-ai';
+
+      return `
+        <button type="button" class="preset-card-btn" onclick="FoodModule.selectQuickPreset('${escapeHtml(item.name)}', '${escapeHtml(item.portion)}', ${item.calories}, ${item.protein}, ${item.carbs}, ${item.fat})">
+          <span class="preset-icon">${emoji}</span>
+          <div class="preset-info">
+            <div class="preset-top-row">
+              <span class="preset-name">${escapeHtml(item.name)}</span>
+              <span class="preset-badge-tag ${badgeClass}">${escapeHtml(item.badge || 'Favorit')}</span>
+            </div>
+            <span class="preset-macros">${item.calories} kkal • ${item.protein}g P</span>
+          </div>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function refreshSmartPresets() {
+    if (typeof App !== 'undefined' && App.triggerHaptic) App.triggerHaptic(30);
+    renderSmartPresets();
+    if (typeof App !== 'undefined' && App.showToast) {
+      App.showToast("Rekomendasi menu diperbarui!", "info");
+    }
+  }
+
   function selectQuickPreset(name, portion, calories, protein, carbs, fat) {
     if (typeof App !== 'undefined' && App.triggerHaptic) App.triggerHaptic(40);
     
@@ -675,6 +847,8 @@ const FoodModule = (() => {
     switchMode,
     fillSample,
     selectQuickPreset,
+    renderSmartPresets,
+    refreshSmartPresets,
     handleImageSelected,
     removePhoto,
     analyzeWithAI,

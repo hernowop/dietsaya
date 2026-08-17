@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'dietsaya-v3';
+const CACHE_NAME = 'dietsaya-v4';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -21,8 +21,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = e.request.url;
 
-  // Jangan pernah cache permintaan ke backend Google Apps Script atau Google APIs
-  if (url.includes('script.google.com') || url.includes('googleapis.com') || e.request.method === 'POST') {
+  // Jangan pernah cache permintaan ke backend Google Apps Script, Google APIs, atau skrip JS aplikasi
+  if (url.includes('script.google.com') || url.includes('googleapis.com') || e.request.method === 'POST' || url.includes('/js/')) {
     return;
   }
 
@@ -30,3 +30,4 @@ self.addEventListener('fetch', (e) => {
     fetch(e.request).catch(() => caches.match(e.request))
   );
 });
+
